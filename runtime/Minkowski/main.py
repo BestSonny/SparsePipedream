@@ -1,31 +1,34 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT license.
-
-import argparse
-from collections import OrderedDict
-import importlib
+import torch.utils.data as data
 import os
-import shutil
-import time
-
+import os.path
 import torch
-from torch.autograd import Variable
+import numpy as np
+import logging
+import sys
+import json
+#from plyfile import PlyData, PlyElement
+import argparse
+from models.minkunet import MinkUNet34C
+import models.vgg16.vgg_mink as vgg
+import torch.optim as optim
+import time
+import MinkowskiEngine as ME
+import random
 import torch.nn as nn
-import torch.nn.parallel
-import torch.backends.cudnn as cudnn
-import torch.distributed as dist
-import torch.optim
-import torch.utils.data
-import torch.utils.data.distributed
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-import torchvision.models as models
+import importlib
+from dataset.dataset import ShapeNetDataset, collate_pointcloud_fn
+from multiprocessing import Manager
+
+torch.manual_seed(0)
+import numpy as np
+np.random.seed(0)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 from apex import amp
 
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('--data_dir', type=str,
-                    help='path to dataset')
+parser = argparse.ArgumentParser(description='PyTorch Minkowski Training')
+parser.add_argument('--data_dir', type=str, required=True, help="dataset path")
 parser.add_argument('--module', '-m', required=True,
                     help='name of module that contains full model definition')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
@@ -38,7 +41,7 @@ parser.add_argument('-b', '--batch-size', default=256, type=int,
                     metavar='N', help='mini-batch size (default: 256)')
 parser.add_argument('--eval-batch-size', default=100, type=int,
                     help='eval mini-batch size (default: 100)')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.01, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
@@ -62,13 +65,15 @@ parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
                     help='url used to set up distributed training')
 parser.add_argument('--dist-backend', default='gloo', type=str,
                     help='distributed backend')
+parser.add_argument('--voxel_size', type=float, default=0.05)
+parser.add_argument('--max_iter', type=int, default=120000)
+parser.add_argument('--val_freq', type=int, default=1000)
 
 best_prec1 = 0
 args = parser.parse_args()
 
 # initialize Amp
 amp_handle = amp.init(enabled=args.fp16)
-
 
 class SyntheticDataset(torch.utils.data.dataset.Dataset):
     def __init__(self, input_size, length, num_classes=1000):
@@ -82,6 +87,20 @@ class SyntheticDataset(torch.utils.data.dataset.Dataset):
     def __len__(self):
         return self.length
 
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.reset()
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
 
 def main():
     global args, best_prec1
@@ -96,95 +115,64 @@ def main():
     module = importlib.import_module(args.module)
     args.arch = module.arch()
     model = module.full_model()
+    #model = vgg.vgg16(out_channels=16)
+    print("model:", model)
 
     model = model.cuda()
-
-    if not args.distributed:
-        model = torch.nn.DataParallel(model).cuda()
-    else:
-        model.cuda()
-        model = torch.nn.parallel.DistributedDataParallel(model)
+    #if not args.distributed:
+    #    model = torch.nn.DataParallel(model).cuda()
+    #else:
+    #    model.cuda()
+    #    model = torch.nn.parallel.DistributedDataParallel(model)
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
 
     global model_parameters, master_parameters
+    #optimizer = torch.optim.Adam(model.parameters(), args.lr,
+    #                             betas=(0.9,0.999),
+    #                             weight_decay=args.weight_decay)
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
-
-    # optionally resume from a checkpoint
-    if args.resume:
-        if os.path.isfile(args.resume):
-            print("=> loading checkpoint '{}'".format(args.resume))
-            checkpoint = torch.load(args.resume)
-            args.start_epoch = checkpoint['epoch']
-            best_prec1 = checkpoint['best_prec1']
-            model.load_state_dict(checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            print("=> loaded checkpoint '{}' (epoch {})"
-                  .format(args.resume, checkpoint['epoch']))
-        else:
-            print("=> no checkpoint found at '{}'".format(args.resume))
-
-    cudnn.benchmark = True
-
     # Data loading code
-    traindir = os.path.join(args.data_dir, 'train')
-    valdir = os.path.join(args.data_dir, 'val')
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
-    if args.arch == 'inception_v3':
-        train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-                transforms.RandomResizedCrop(299),
-                transforms.ToTensor(),
-                normalize,
-            ])
-        )
-        if args.synthetic_data:
-            train_dataset = SyntheticDataset((3, 299, 299), len(train_dataset))
-    else:
-        train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-                transforms.RandomResizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                normalize,
-            ]))
-        if args.synthetic_data:
-            train_dataset = SyntheticDataset((3, 224, 224), len(train_dataset))
-
+    manager = Manager()
+    shared_dict = manager.dict() #create cache for storing data
+    train_dataset = ShapeNetDataset(root=args.data_dir,
+                              shared_dict=shared_dict,
+                              classification=True,
+                              voxel_size=args.voxel_size)
+    val_dataset = ShapeNetDataset(root=args.data_dir,
+                              classification=True,
+                              split='val',
+                              voxel_size=args.voxel_size)
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+        val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
     else:
         train_sampler = None
+        val_sampler  = None
 
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler)
-
-    val_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            normalize,
-        ])),
-        batch_size=args.eval_batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
-
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                                        batch_size=args.batch_size,
+                                        shuffle=(train_sampler is None),
+                                        num_workers=args.workers,
+                                        pin_memory=True, sampler=train_sampler,
+                                        collate_fn=collate_pointcloud_fn)
+    val_loader = torch.utils.data.DataLoader(val_dataset,
+                                        batch_size=args.eval_batch_size, 
+                                        shuffle=False,
+                                        num_workers=args.workers, pin_memory=True,
+                                        sampler=val_sampler,
+                                        collate_fn=collate_pointcloud_fn)
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
-            train_sampler.set_epoch(epoch)
+            train_sampler.set_epoch(epoch) 
         adjust_learning_rate(optimizer, epoch)
 
         # train or run forward pass only for one epoch
         if args.forward_only:
-            validate(train_loader, model, criterion, epoch)
+            validate(train_loader, model, criterion, epoch) 
         else:
             train(train_loader, model, criterion, optimizer, epoch)
 
@@ -194,15 +182,15 @@ def main():
             # remember best prec@1 and save checkpoint
             is_best = prec1 > best_prec1
             best_prec1 = max(prec1, best_prec1)
-            checkpoint_dict = {
-                'epoch': epoch + 1,
-                'arch': args.arch,
-                'state_dict': model.state_dict(),
-                'best_prec1': best_prec1,
-                'optimizer' : optimizer.state_dict(),
-            }
-            save_checkpoint(checkpoint_dict, is_best)
-
+            #checkpoint_dict = {
+            #    'epoch': epoch + 1,
+            #    'arch': args.arch,
+            #    'state_dict': model.state_dict(),
+            #    'best_prec1': best_prec1,
+            #    'optimizer' : optimizer.state_dict(),
+            #}
+            # save_checkpoint(checkpoint_dict, is_best)
+            print("Epoch: %d, best_prec1: %f" % (epoch + 1, best_prec1))
 
 def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
@@ -216,37 +204,52 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
     end = time.time()
     epoch_start_time = time.time()
-    for i, (input, target) in enumerate(train_loader):
+
+    for i, data_dict in enumerate(train_loader):
         if args.num_minibatches is not None and i >= args.num_minibatches:
             break
-
-        # measure data loading time
+        coords = data_dict['coords']
+        feats = data_dict['feats']
+        labels = data_dict['labels']
+        #print("coords len:", len(coords))
+        #torch.cuda.synchronize()
+        #st1 = time()
+        #len_c = coords.size(0)
+        #len2 = min(40000, len_c)
+        #indice = random.sample(range(len_c), len2)
+        #coords = coords[indice]
+        #labels = labels[indice]
+        #torch.cuda.synchronize()
+        #data_select_time.update(time() - st1)
+        sin = ME.SparseTensor(
+            feats, #coords[:, :3] * args.voxel_size,
+            coords.int(),
+            allow_duplicate_coords=True,  # for classification, it doesn't matter
+        )  #.to(device)
+        sin = sin.to('cuda')
+        labels = labels.to('cuda')
+        torch.cuda.synchronize()
         data_time.update(time.time() - end)
 
-        target = target.cuda(non_blocking=True)
-
-        # compute output
-        output = model(input)
-        if isinstance(output, tuple):
-            loss = sum((criterion(output_elem, target) for output_elem in output))
-        else:
-            loss = criterion(output, target)
-
+        sout = model(sin)
+        loss = criterion(sout.F, labels)
         # measure accuracy and record loss
-        if isinstance(output, tuple):
-            prec1, prec5 = accuracy(output[0], target, topk=(1, 5))
+        if isinstance(sout, tuple):
+            prec1, prec5 = accuracy(sout[0].F, labels, topk=(1, 5))
         else:
-            prec1, prec5 = accuracy(output, target, topk=(1, 5))
-        losses.update(loss.item(), input.size(0))
-        top1.update(prec1[0], input.size(0))
-        top5.update(prec5[0], input.size(0))
+            prec1, prec5 = accuracy(sout.F, labels, topk=(1, 5))
+        losses.update(loss.item(), args.batch_size)
+        top1.update(prec1[0], args.batch_size)
+        top5.update(prec5[0], args.batch_size)
 
-        # compute gradient and do SGD step
+        #torch.cuda.synchronize() 
+        #forward_time.update(time() - st3)
+
+        #st4 = time()
         optimizer.zero_grad()
         with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
         optimizer.step()
-
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
@@ -271,7 +274,6 @@ def train(train_loader, model, criterion, optimizer, epoch):
     print("Epoch %d: %.3f seconds" % (epoch, time.time() - epoch_start_time))
     print("Epoch start time: %.3f, epoch end time: %.3f" % (epoch_start_time, time.time()))
 
-
 def validate(val_loader, model, criterion, epoch):
     batch_time = AverageMeter()
     losses = AverageMeter()
@@ -284,20 +286,28 @@ def validate(val_loader, model, criterion, epoch):
     epoch_start_time = time.time()
     with torch.no_grad():
         end = time.time()
-        for i, (input, target) in enumerate(val_loader):
+        for i, data_dict in enumerate(val_loader):
             if args.num_minibatches is not None and i >= args.num_minibatches:
                 break
-            target = target.cuda(non_blocking=True)
-
+            coords = data_dict['coords'] 
+            feats = data_dict['feats'] 
+            labels = data_dict['labels']
+            sin = ME.SparseTensor(
+                feats, #coords[:, :3] * args.voxel_size,
+                coords.int(),
+                allow_duplicate_coords=True,  # for classification, it doesn't matter
+            )  #.to(device)
+            sin = sin.to('cuda')
+            labels = labels.to('cuda')
             # compute output
-            output = model(input)
-            loss = criterion(output, target)
+            sout = model(sin)
+            loss = criterion(sout.F, labels)
 
             # measure accuracy and record loss
-            prec1, prec5 = accuracy(output, target, topk=(1, 5))
-            losses.update(loss.item(), input.size(0))
-            top1.update(prec1[0], input.size(0))
-            top5.update(prec5[0], input.size(0))
+            prec1, prec5 = accuracy(sout.F, labels, topk=(1, 5))
+            losses.update(loss.item(), args.eval_batch_size)
+            top1.update(prec1[0], args.eval_batch_size)
+            top5.update(prec5[0], args.eval_batch_size)
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -326,30 +336,10 @@ def validate(val_loader, model, criterion, epoch):
 
     return top1.avg
 
-
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
 
 def adjust_learning_rate(optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
@@ -376,4 +366,9 @@ def accuracy(output, target, topk=(1,)):
 
 
 if __name__ == '__main__':
+    #config = parser.parse_args()
+    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #net = MinkUNet34C(3, 16, D=3)
+    #net.to(device)
+    #train(net, device, config)
     main()

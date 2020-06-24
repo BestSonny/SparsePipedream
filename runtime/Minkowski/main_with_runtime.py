@@ -1,34 +1,47 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT license.
-
+import torch.utils.data as data
+import os
+import os.path
+import torch
+import numpy as np
+import logging
+import sys
+import json
 import argparse
+import torch.optim as optim
+import MinkowskiEngine as ME
+import random
+
 from collections import OrderedDict
 import importlib
 import json
-import os
 import shutil
-import sys
 import time
 
-import torch
 from torch.autograd import Variable
 import torch.nn as nn
-import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
-import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+from multiprocessing import Manager
 
-sys.path.append("..")
-import runtime
+import communication_sparse as comm_sparse
+import runtime_sparse
+from dataset.dataset import ShapeNetDataset, collate_pointcloud_fn
+sys.path.append("../")
+import adam
 import sgd
 
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('--data_dir', type=str,
-                    help='path to dataset')
+#torch.manual_seed(0)
+#import numpy as np
+#np.random.seed(0)
+#torch.backends.cudnn.deterministic = True
+#torch.backends.cudnn.benchmark = False
+
+parser = argparse.ArgumentParser(description='PyTorch Pipeline Minkowski Training')
+parser.add_argument('--data_dir', type=str, required=True, help="dataset path")
 parser.add_argument('--distributed_backend', type=str,
                     help='distributed backend to use (gloo|nccl)')
 parser.add_argument('--module', '-m', required=True,
@@ -39,11 +52,11 @@ parser.add_argument('--epochs', default=90, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('-b', '--batch-size', default=256, type=int,
-                    metavar='N', help='mini-batch size (default: 256)')
+parser.add_argument('-b', '--batch-size', default=64, type=int,
+                    metavar='N', help='mini-batch size (default: 64)')
 parser.add_argument('--eval-batch-size', default=100, type=int,
                     help='eval mini-batch size (default: 100)')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.01, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--lr_policy', default='step', type=str,
                     help='policy for controlling learning rate')
@@ -51,9 +64,9 @@ parser.add_argument('--lr_warmup', action='store_true',
                     help='Warmup learning rate first 5 epochs')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
-parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
+parser.add_argument('--weight-decay', '--wd', default=5e-4, type=float,
                     metavar='W', help='weight decay (default: 1e-4)')
-parser.add_argument('--print-freq', '-p', default=10, type=int,
+parser.add_argument('--print-freq', '-p', default=1, type=int,
                     metavar='N', help='print frequency (default: 10)')
 parser.add_argument('--fp16', action='store_true',
                     help='train model in fp16 precision')
@@ -81,7 +94,7 @@ parser.add_argument('--checkpoint_dir_not_nfs', action='store_true',
                     help='checkpoint dir is not on a shared NFS server')
 parser.add_argument('-s', '--synthetic_data', action='store_true',
                     help="Use synthetic data")
-parser.add_argument('-v', '--verbose_frequency', default=0, type=int, metavar='N',
+parser.add_argument('-v', '--verbose_frequency', default=0, type=int, metavar='N', 
                     help="Log verbose information")
 parser.add_argument('--num_ranks_in_server', default=1, type=int,
                     help="number of gpus per machine")
@@ -92,9 +105,14 @@ parser.add_argument('--recompute', action='store_true',
 # by not applying updates every minibatch.
 parser.add_argument('--macrobatch', action='store_true',
                     help='Macrobatch updates to save memory')
+parser.add_argument('--voxel_size', type=float, default=0.05)
 
-best_prec1 = 0
-
+ch = logging.StreamHandler(sys.stdout)
+logging.getLogger().setLevel(logging.INFO)
+logging.basicConfig(
+    format=os.uname()[1].split('.')[0] + ' %(asctime)s %(message)s',
+    datefmt='%m/%d %H:%M:%S',
+    handlers=[ch])
 
 # Helper methods.
 def is_first_stage():
@@ -103,23 +121,25 @@ def is_first_stage():
 def is_last_stage():
     return args.stage is None or (args.stage == (args.num_stages-1))
 
-# Synthetic Dataset class.
-class SyntheticDataset(torch.utils.data.dataset.Dataset):
-    def __init__(self, input_size, length, num_classes=1000):
-        self.tensor = Variable(torch.rand(*input_size)).type(torch.FloatTensor)
-        self.target = torch.Tensor(1).random_(0, num_classes)[0].type(torch.LongTensor)
-        self.length = length
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.reset()
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
 
-    def __getitem__(self, index):
-        return self.tensor, self.target
-
-    def __len__(self):
-        return self.length
-
+best_prec1 = 0
 def main():
     global args, best_prec1
     args = parser.parse_args()
-
     torch.cuda.set_device(args.local_rank)
 
     # define loss function (criterion)
@@ -130,36 +150,37 @@ def main():
     args.arch = module.arch()
     model = module.model(criterion)
 
-    # determine shapes of all tensors in passed-in model
-    if args.arch == 'inception_v3':
-        input_size = [args.batch_size, 3, 299, 299]
-    else:
-        input_size = [args.batch_size, 3, 224, 224]
+    # create fake input
+    input_coords_size = [2000, 4]
+    input_feats_size = [2000, 3]
+    coords = torch.randint(100, tuple(input_coords_size), dtype=torch.int)
+    feats = torch.zeros(tuple(input_feats_size), dtype=torch.float32)
+    input = ME.SparseTensor(feats=feats, coords=coords)
+    input_size = comm_sparse.createTensorSize(input)
+    input_dtype = comm_sparse.createTensorDtype(input)
+
     training_tensor_shapes = {"input0": input_size, "target": [args.batch_size]}
-    dtypes = {"input0": torch.int64, "target": torch.int64}
+    dtypes = {"input0": input_dtype, "target": torch.int64}
     inputs_module_destinations = {"input": 0}
     target_tensor_names = {"target"}
+    fake_inputs = {"input0" : input}
     for (stage, inputs, outputs) in model[:-1]:  # Skip last layer (loss).
         input_tensors = []
         for input in inputs:
-            input_tensor = torch.zeros(tuple(training_tensor_shapes[input]),
-                                       dtype=torch.float32)
-            input_tensors.append(input_tensor)
+            input_tensors.append(fake_inputs[input])
         with torch.no_grad():
             output_tensors = stage(*tuple(input_tensors))
         if not type(output_tensors) is tuple:
             output_tensors = [output_tensors]
         for output, output_tensor in zip(outputs,
                                          list(output_tensors)):
-            training_tensor_shapes[output] = list(output_tensor.size())
-            dtypes[output] = output_tensor.dtype
+            training_tensor_shapes[output] = comm_sparse.createTensorSize(output_tensor) #list(output_tensor.size())
+            dtypes[output] = comm_sparse.createTensorDtype(output_tensor) #output_tensor.dtype
+            fake_inputs[output] = output_tensor
 
     eval_tensor_shapes = {}
     for key in training_tensor_shapes:
-        eval_tensor_shapes[key] = tuple(
-            [args.eval_batch_size] + training_tensor_shapes[key][1:])
-        training_tensor_shapes[key] = tuple(
-            training_tensor_shapes[key])
+        eval_tensor_shapes[key] = training_tensor_shapes[key]
 
     configuration_maps = {
         'module_to_stage_map': None,
@@ -174,7 +195,7 @@ def main():
             int(k): v for (k, v) in configuration_maps['stage_to_rank_map'].items()}
         configuration_maps['stage_to_depth_map'] = json_config_file.get("stage_to_depth_map", None)
 
-    r = runtime.StageRuntime(
+    r = runtime_sparse.StageRuntimeSparse(
         model=model, distributed_backend=args.distributed_backend,
         fp16=args.fp16, loss_scale=args.loss_scale,
         training_tensor_shapes=training_tensor_shapes,
@@ -187,7 +208,7 @@ def main():
         local_rank=args.local_rank,
         num_ranks_in_server=args.num_ranks_in_server,
         verbose_freq=args.verbose_frequency,
-        model_type=runtime.IMAGE_CLASSIFICATION,
+        model_type=runtime_sparse.MINKOWSKI,
         enable_recompute=args.recompute)
 
     # stage needed to determine if current stage is the first stage
@@ -219,55 +240,42 @@ def main():
         print("=> loaded checkpoint '{}' (epoch {})"
                 .format(checkpoint_file_path, checkpoint['epoch']))
 
+    #optimizer = adam.AdamWithWeightStashing(r.modules(), r.master_parameters,
+    #                                      r.model_parameters, args.loss_scale,
+    #                                      num_versions=num_versions,
+    #                                      lr=args.lr,
+    #                                      betas=(0.9, 0.999),
+    #                                      #momentum=args.momentum,
+    #                                      weight_decay=args.weight_decay,
+    #                                      verbose_freq=args.verbose_frequency,
+    #                                      macrobatch=args.macrobatch)
     optimizer = sgd.SGDWithWeightStashing(r.modules(), r.master_parameters,
                                           r.model_parameters, args.loss_scale,
                                           num_versions=num_versions,
                                           lr=args.lr,
+                                          #betas=(0.9, 0.999),
                                           momentum=args.momentum,
                                           weight_decay=args.weight_decay,
                                           verbose_freq=args.verbose_frequency,
                                           macrobatch=args.macrobatch)
-
     if args.resume:
         optimizer.load_state_dict(checkpoint['optimizer'])
-
-    cudnn.benchmark = True
-
+     
     # Data loading code
-    traindir = os.path.join(args.data_dir, 'train')
-    valdir = os.path.join(args.data_dir, 'val')
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
-    if args.arch == 'inception_v3':
-        train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-                transforms.RandomResizedCrop(299),
-                transforms.ToTensor(),
-                normalize,
-            ])
-        )
-        if args.synthetic_data:
-            train_dataset = SyntheticDataset((3, 299, 299), len(train_dataset))
-    else:
-        train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-                transforms.RandomResizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                normalize,
-            ]))
-        if args.synthetic_data:
-            train_dataset = SyntheticDataset((3, 224, 224), len(train_dataset))
-
-    val_dataset = datasets.ImageFolder(valdir, transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        normalize,
-    ]))
+    manager = Manager()
+    shared_dict = manager.dict() #create cache for storing data
+    train_dataset = ShapeNetDataset(root=args.data_dir,
+                                    shared_dict=shared_dict,
+                                    classification=True,
+                                    voxel_size=args.voxel_size)
+    if args.synthetic_data:
+        train_dataset = SyntheticDataset((3, 224, 224), len(train_dataset))
+    #shared_dict_val = manager.dict()
+    val_dataset = ShapeNetDataset(root=args.data_dir,
+                                  #shared_dict=shared_dict_val,
+                                  classification=True,
+                                  split='val',
+                                  voxel_size=args.voxel_size)
 
     distributed_sampler = False
     train_sampler = None
@@ -283,19 +291,26 @@ def main():
                 rank=args.rank)
             distributed_sampler = True
 
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler, drop_last=True)
-
-    val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=args.eval_batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True, sampler=val_sampler, drop_last=True)
-
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                                        batch_size=args.batch_size,
+                                        shuffle=(train_sampler is None), #True,
+                                        num_workers=int(args.workers),
+                                        pin_memory=True,
+                                        sampler=train_sampler,
+                                        collate_fn=collate_pointcloud_fn)
+    val_loader = torch.utils.data.DataLoader(val_dataset,
+                                             batch_size=args.batch_size,
+                                             shuffle=False,
+                                             num_workers=int(args.workers),
+                                             pin_memory=True,
+                                             sampler=val_sampler,
+                                             collate_fn=collate_pointcloud_fn)
     # if checkpoint is loaded, start by running validation
     if args.resume:
         assert args.start_epoch > 0
         validate(val_loader, r, args.start_epoch-1)
 
+    start_run = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         if distributed_sampler:
             train_sampler.set_epoch(epoch)
@@ -305,10 +320,9 @@ def main():
             validate(val_loader, r, epoch)
         else:
             train(train_loader, r, optimizer, epoch)
-
             # evaluate on validation set
             prec1 = validate(val_loader, r, epoch)
-            if r.stage != r.num_stages: prec1 = 0
+            if r.stage != r.num_stages - 1: prec1 = 0
 
             # remember best prec@1 and save checkpoint
             best_prec1 = max(prec1, best_prec1)
@@ -322,10 +336,18 @@ def main():
             #        'best_prec1': best_prec1,
             #        'optimizer' : optimizer.state_dict(),
             #    }, args.checkpoint_dir, r.stage)
-
+            print("Epoch: %d, best_prec1: %f" % (epoch, best_prec1))
+    end_run = time.time()
+    print("Total running time: %.3f" % (end_run - start_run))
 
 def train(train_loader, r, optimizer, epoch):
     batch_time = AverageMeter()
+    #data_time = AverageMeter()
+    #data_select_time = AverageMeter()
+    #sparse_data_time = AverageMeter()
+    #data_transfer_time = AverageMeter()
+    #forward_time = AverageMeter()
+    #bwd_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
@@ -364,10 +386,10 @@ def train(train_loader, r, optimizer, epoch):
         if is_last_stage():
             # measure accuracy and record loss
             output, target, loss = r.output, r.target, r.loss
-            prec1, prec5 = accuracy(output, target, topk=(1, 5))
-            losses.update(loss.item(), output.size(0))
-            top1.update(prec1[0], output.size(0))
-            top5.update(prec5[0], output.size(0))
+            prec1, prec5 = accuracy(output.F, target, topk=(1, 5))
+            losses.update(loss.item(), args.batch_size) # output.F.size(0))
+            top1.update(prec1[0], args.batch_size) #output.F.size(0))
+            top5.update(prec5[0], args.batch_size) #output.F.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -417,9 +439,8 @@ def train(train_loader, r, optimizer, epoch):
     # wait for all helper threads to complete
     r.wait()
 
-    print("Epoch %d: %.3f seconds" % (epoch, time.time() - epoch_start_time))
-    print("Epoch start time: %.3f, epoch end time: %.3f" % (epoch_start_time, time.time()))
-
+    print("Training epoch %d: %.3f seconds, epoch start time: %.3f, epoch end time: %.3f" % (epoch, time.time() - epoch_start_time, epoch_start_time, time.time()))
+    #print("Epoch start time: %.3f, epoch end time: %.3f" % (epoch_start_time, time.time()))
 
 def validate(val_loader, r, epoch):
     batch_time = AverageMeter()
@@ -460,10 +481,10 @@ def validate(val_loader, r, epoch):
                 output, target, loss = r.output, r.target, r.loss
 
                 # measure accuracy and record loss
-                prec1, prec5 = accuracy(output, target, topk=(1, 5))
-                losses.update(loss.item(), output.size(0))
-                top1.update(prec1[0], output.size(0))
-                top5.update(prec5[0], output.size(0))
+                prec1, prec5 = accuracy(output.F, target, topk=(1, 5))
+                losses.update(loss.item(), args.batch_size)
+                top1.update(prec1[0], args.batch_size)
+                top5.update(prec5[0], args.batch_size)
 
                 # measure elapsed time
                 batch_time.update(time.time() - end)
@@ -492,36 +513,15 @@ def validate(val_loader, r, epoch):
         # wait for all helper threads to complete
         r.wait()
 
-        print('Epoch %d: %.3f seconds' % (epoch, time.time() - epoch_start_time))
-        print("Epoch start time: %.3f, epoch end time: %.3f" % (epoch_start_time, time.time()))
-
+        print('Testing epoch %d: %.3f seconds, epoch start time: %.3f, epoch end time: %.3f' % (epoch, time.time() - epoch_start_time, epoch_start_time, time.time()))
+        #print("Epoch start time: %.3f, epoch end time: %.3f" % (epoch_start_time, time.time()))
     return top1.avg
-
 
 def save_checkpoint(state, checkpoint_dir, stage):
     assert os.path.isdir(checkpoint_dir)
     checkpoint_file_path = os.path.join(checkpoint_dir, "checkpoint.%d.pth.tar" % stage)
     torch.save(state, checkpoint_file_path)
     print("Saved checkpoint to %s" % checkpoint_file_path)
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
 
 def adjust_learning_rate(optimizer, epoch, total_epochs, r, lr_policy, step, epoch_length):
     """ Adjusts learning rate based on stage, epoch, and policy.
@@ -556,7 +556,6 @@ def adjust_learning_rate(optimizer, epoch, total_epochs, r, lr_policy, step, epo
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
-
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     with torch.no_grad():
@@ -573,6 +572,18 @@ def accuracy(output, target, topk=(1,)):
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
 
+# Synthetic Dataset class.
+class SyntheticDataset(torch.utils.data.dataset.Dataset):
+    def __init__(self, input_size, length, num_classes=1000):
+        self.tensor = Variable(torch.rand(*input_size)).type(torch.FloatTensor)
+        self.target = torch.Tensor(1).random_(0, num_classes)[0].type(torch.LongTensor)
+        self.length = length
+
+    def __getitem__(self, index):
+        return self.tensor, self.target
+
+    def __len__(self):
+        return self.length
 
 if __name__ == '__main__':
     main()
