@@ -5,8 +5,12 @@ import os
 import threading
 import torch
 import torch.distributed as dist
+
+import MinkowskiEngine as ME
+from typing import NamedTuple
 import sys
 
+sys.path.append("../")
 import threadsafe_counter
 import threadsafe_queue
 
@@ -14,8 +18,28 @@ import threadsafe_queue
 NCCL='nccl'
 GLOO='gloo'
 
+class SparseDtype(NamedTuple):
+    coordsDtype: str
+    featsDtype: str
+    strideDtype: str
 
-class CommunicationHandler(object):
+def createTensorDtype(tensor):
+    if isinstance(tensor, ME.SparseTensor):
+        return SparseDtype(tensor.C.dtype, tensor.F.dtype, torch.int)
+    else:
+        return tensor.dtype
+
+def createTensorSize(tensor):
+    if isinstance(tensor, ME.SparseTensor):
+        sparse_tensor_size = []
+        sparse_tensor_size.append(list(tensor.C.size()))
+        sparse_tensor_size.append(list(tensor.F.size()))
+        sparse_tensor_size.append((len(tensor.tensor_stride),))
+        return sparse_tensor_size
+    else:
+        return list(tensor.size())
+
+class CommunicationSparseHandler(object):
     """ Handles communication between stages.
 
     For stages on different machines, use send/recv.
@@ -93,7 +117,7 @@ class CommunicationHandler(object):
                    ranks_in_previous_stage,
                    ranks_in_next_stage):
         """
-        Initialize state needed for CommunicationHandler.
+        Initialize state needed for CommunicationSparseHandler.
         """
         self.receive_ranks = receive_ranks
         self.send_ranks = send_ranks
@@ -298,11 +322,17 @@ class CommunicationHandler(object):
 
             for i in range(len(self.send_ranks[output_name])):
                 if not forward_only:
+                    # changed by keke here for only send gradients for SparseTensor
+                    if isinstance(self.training_tensor_dtypes[output_name], SparseDtype):
+                        # get the feature type
+                        dtype = self.training_tensor_dtypes[output_name][1] 
+                    else:
+                        dtype = self.training_tensor_dtypes[output_name]
                     self.start_helper_thread(
                         self.recv_helper_thread_args,
                         recv_helper_thread,
                         [output_name, i,
-                         self.training_tensor_dtypes[output_name],
+                         dtype, #self.training_tensor_dtypes[output_name],
                          True],
                         num_iterations_for_forward_threads)
                 self.start_helper_thread(
@@ -469,9 +499,13 @@ class CommunicationHandler(object):
         for i in range(self.num_ranks_in_stage):
             idx = i
             message_schedule = []
-            while idx < self.num_ranks_in_previous_stage:
-                message_schedule.append(idx)
-                idx += self.num_ranks_in_stage
+            # changed by keke here for unet3d 4gpu
+            if self.num_ranks_in_previous_stage == 1:
+                message_schedule.append(0)
+            else:
+                while idx < self.num_ranks_in_previous_stage:
+                    message_schedule.append(idx)
+                    idx += self.num_ranks_in_stage
             if len(message_schedule) > 0:
                 self.messaging_schedule.append(message_schedule)
 
@@ -542,10 +576,15 @@ class CommunicationHandler(object):
 
         if backward:
             queue = self.backward_receive_queues[tensor_name][index]
+            # changed by keke to make backward only receive SparseTensor gradient
+            tensor_shape = self.tensor_shapes[tensor_name]
+            if any(isinstance(el, list) for el in tensor_shape):
+                tensor_shape = tensor_shape[1]
         else:
             queue = self.forward_receive_queues[tensor_name][index]
-        tensor_shape = self.tensor_shapes[tensor_name]
+            tensor_shape = self.tensor_shapes[tensor_name]
 
+        #print("recv_helper_thread_args:", tensor_name, backward, tensor_shape)
         return (queue, self.counter, self.local_rank, tensor_name,
                 src_rank, tag, tensor_shape, dtype, sub_process_group,
                 num_iterations)
@@ -593,7 +632,9 @@ class CommunicationHandler(object):
             tensor = self.forward_receive_queues[tensor_name][
                 index].remove()
             if tensor.dtype == torch.float32:
-                tensor = tensor.requires_grad_()
+                #change by keke here, SparseTensor only set requires_grad to True, no return
+                #tensor = tensor.requires_grad_()
+                tensor.requires_grad_()
             return tensor
 
     def send(self, tensor_name, tensor, forward_minibatch_id,
@@ -613,10 +654,19 @@ def recv_helper_thread(queue, counter, local_rank, tensor_name,
     torch.cuda.set_device(local_rank)
     # This method is to be executed from a helper daemon thread.
     for i in range(num_iterations):
-        tensor = _recv(
-            tensor_name, src_rank, tensor_shape=tensor_shape,
-            dtype=dtype, tag=tag,
-            sub_process_group=sub_process_group)
+        # added by keke
+        #if dtype == "SparseTensor":
+        if isinstance(dtype, SparseDtype):
+            tensor = _recv_sparse(
+                tensor_name, src_rank, tensor_shape=tensor_shape,
+                dtype=dtype, tag=tag,
+                sub_process_group=sub_process_group)
+        else:
+            tensor = _recv(
+                tensor_name, src_rank, tensor_shape=tensor_shape,
+                dtype=dtype, tag=tag,
+                sub_process_group=sub_process_group)
+        #print("recv_helper_thread, tensor_name:", tensor_name, src_rank)
         queue.add(tensor)
     counter.decrement()
 
@@ -627,7 +677,14 @@ def send_helper_thread(queue, counter, local_rank, tensor_name,
     # This method is to be executed from a helper daemon thread.
     for i in range(num_iterations):
         tensor = queue.remove()
-        _send(tensor, tensor_name, src_rank, dst_rank,
+        #added by keke
+        if isinstance(tensor, ME.SparseTensor):
+            #print("Transferring SparseTensor")
+            _send_sparse(tensor, tensor_name, src_rank, dst_rank,
+              tag=tag,
+              sub_process_group=sub_process_group)
+        else:
+            _send(tensor, tensor_name, src_rank, dst_rank,
               tag=tag,
               sub_process_group=sub_process_group)
     counter.decrement()
@@ -680,6 +737,100 @@ def _recv(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,
     assert tensor.is_cuda
     return tensor
 
+def _recv_sparse(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,
+          tensor=None, tag=None, sub_process_group=None):
+    """
+    Receives SparseTensor by calling PyTorch's recv() call.
+
+    Tensor will be copied to GPU prior to return.
+    """
+    assert tag is not None
+    if tensor is None:
+        assert tensor_shape is not None
+        assert dtype is not None
+        assert dtype != torch.float16
+    assert len(tensor_shape) == 3
+    coords_shape = tensor_shape[0]
+    feats_shape = tensor_shape[1]
+    stride_tensor_shape = tensor_shape[2]
+
+    if sub_process_group is not None:
+        # Receive coords shape and tensor
+        coords_tensor_shape = torch.zeros(len(coords_shape),
+                                            dtype=torch.int)
+        dist.broadcast(tensor=coords_tensor_shape, src=src_rank,
+                       group=sub_process_group)
+        coords_tensor_shape = list(map(lambda x: int(x),
+                                         coords_tensor_shape))
+        coords = torch.zeros(coords_tensor_shape, dtype=dtype[0]).cuda()
+        dist.broadcast(tensor=coords, src=src_rank, group=sub_process_group)
+        coords = coords.cpu()
+        # Receive feats shape and tensor
+        feats_tensor_shape = torch.zeros(len(feats_shape),
+                                            dtype=torch.int)
+        dist.broadcast(tensor=feats_tensor_shape, src=src_rank,
+                       group=sub_process_group)
+        feats_tensor_shape = list(map(lambda x: int(x),
+                                         feats_tensor_shape))
+        feats = torch.zeros(feats_tensor_shape, dtype=dtype[1]).cuda()
+        dist.broadcast(tensor=feats, src=src_rank, group=sub_process_group)
+        # Receive tensor_stride shape and tensor
+        stride_tensor_shape = torch.zeros(len(stride_tensor_shape),
+                                            dtype=torch.int)
+        dist.broadcast(tensor=stride_tensor_shape, src=src_rank,
+                       group=sub_process_group)
+        stride_tensor_shape = list(map(lambda x: int(x),
+                                         stride_tensor_shape))
+        stride_tensor = torch.zeros(stride_tensor_shape, dtype=dtype[2]).cuda()
+        dist.broadcast(tensor=stride_tensor, src=src_rank, group=sub_process_group)
+        stride_tensor = stride_tensor.cpu()
+
+        sparse_tensor = ME.SparseTensor(feats=feats, coords=coords, tensor_stride=stride_tensor)
+    else:
+        # Receive coords shape and tensor.
+        coords_tensor_shape = torch.zeros(len(coords_shape),
+                                            dtype=torch.int)
+        dist.recv(tensor=coords_tensor_shape,
+                  src=src_rank,
+                  tag=tag)
+        coords_tensor_shape = list(map(lambda x: int(x),
+                                         coords_tensor_shape))
+        coords = torch.zeros(coords_tensor_shape, dtype=dtype[0])
+        dist.recv(tensor=coords,
+                  src=src_rank,
+                  tag=tag)
+
+        # Receive feats shape and tensor.
+        feats_tensor_shape = torch.zeros(len(feats_shape),
+                                            dtype=torch.int)
+        dist.recv(tensor=feats_tensor_shape,
+                  src=src_rank,
+                  tag=tag+1)
+        feats_tensor_shape = list(map(lambda x: int(x),
+                                         feats_tensor_shape))
+        feats = torch.zeros(feats_tensor_shape, dtype=dtype[1])
+        dist.recv(tensor=feats,
+                  src=src_rank,
+                  tag=tag+1)
+        feats = feats.cuda()
+
+        # Receive stride_tensor shape and tensor.
+        stride_tensor_shape = torch.zeros(len(stride_tensor_shape),
+                                            dtype=torch.int)
+        dist.recv(tensor=stride_tensor_shape,
+                  src=src_rank,
+                  tag=tag+2)
+        stride_tensor_shape = list(map(lambda x: int(x),
+                                         stride_tensor_shape))
+        stride_tensor = torch.zeros(stride_tensor_shape, dtype=dtype[2])
+        dist.recv(tensor=stride_tensor,
+                  src=src_rank,
+                  tag=tag+2)
+        sparse_tensor = ME.SparseTensor(feats=feats, coords=coords, tensor_stride=stride_tensor)
+
+    assert sparse_tensor.F.is_cuda
+    return sparse_tensor
+
 def _send(tensor, tensor_name, src_rank, dst_rank, tag, sub_process_group=None):
     """
     Sends tensor by calling PyTorch's send() call.
@@ -710,3 +861,70 @@ def _send(tensor, tensor_name, src_rank, dst_rank, tag, sub_process_group=None):
 
         # Send tensor.
         dist.send(tensor=tensor, dst=dst_rank, tag=tag)
+
+# added by keke
+def _send_sparse(sparse_tensor, tensor_name, src_rank, dst_rank, tag, sub_process_group=None):
+    """
+    Sends tensor by calling PyTorch's send() call.
+
+    If tensor is being sent not via broadcast(), it will
+    be first copied to the CPU.
+    """
+    coords = sparse_tensor.C
+    feats = sparse_tensor.F
+    tensor_stride = torch.tensor(sparse_tensor.tensor_stride, dtype=torch.int)
+    
+    if sub_process_group is not None:
+        assert feats.is_cuda
+        assert not coords.is_cuda
+        assert not tensor_stride.is_cuda
+
+        # Send coord shape.
+        coords = coords.to('cuda')
+        tensor_shape = torch.tensor(coords.shape, dtype=torch.int)
+        dist.broadcast(tensor=tensor_shape, src=src_rank,
+                      group=sub_process_group)
+        # Send coord tensor.
+        contiguous_tensor = coords.detach().clone()
+        dist.broadcast(tensor=contiguous_tensor.contiguous(),
+                       src=src_rank,
+                       group=sub_process_group)
+
+        # Send feats shape.
+        tensor_shape = torch.tensor(feats.shape, dtype=torch.int)
+        dist.broadcast(tensor=tensor_shape, src=src_rank,
+                      group=sub_process_group)
+        # Send feats tensor.
+        contiguous_tensor = feats.detach().clone()
+        dist.broadcast(tensor=contiguous_tensor.contiguous(),
+                       src=src_rank,
+                       group=sub_process_group)
+
+        # Send tensor_stride shape.
+        tensor_stride = tensor_stride.to('cuda')
+        tensor_shape = torch.tensor(tensor_stride.shape, dtype=torch.int)
+        dist.broadcast(tensor=tensor_shape, src=src_rank,
+                      group=sub_process_group)
+        # Send tensor_stride tensor.
+        contiguous_tensor = tensor_stride.detach().clone()
+        dist.broadcast(tensor=contiguous_tensor.contiguous(),
+                       src=src_rank,
+                       group=sub_process_group)
+    else:
+        assert feats.is_cuda
+        assert not coords.is_cuda
+        assert not tensor_stride.is_cuda
+        feats = feats.cpu()
+
+        # Send coords shape and tensor
+        tensor_shape = torch.tensor(coords.shape, dtype=torch.int)
+        dist.send(tensor=tensor_shape, dst=dst_rank, tag=tag)
+        dist.send(tensor=coords, dst=dst_rank, tag=tag)
+        # Send feats shape and tensor
+        tensor_shape = torch.tensor(feats.shape, dtype=torch.int)
+        dist.send(tensor=tensor_shape, dst=dst_rank, tag=tag+1)
+        dist.send(tensor=feats, dst=dst_rank, tag=tag+1)
+        # Send tensor_stride shape and tensor
+        tensor_shape = torch.tensor(tensor_stride.shape, dtype=torch.int)
+        dist.send(tensor=tensor_shape, dst=dst_rank, tag=tag+2)
+        dist.send(tensor=tensor_stride, dst=dst_rank, tag=tag+2)
