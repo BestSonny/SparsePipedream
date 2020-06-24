@@ -1,0 +1,18 @@
+'log_directory': '/extra_disk/keke/pipeDream/sparse-pipedream/runtime/Minkowski/results/test_accuracy'
+'module': 'models.vgg16bn.gpus=2'
+'data_dir': '/extra_disk/keke/pipeDream/pipedream/runtime/point_cloud/dataset/shapenetcore_partanno_segmentation_benchmark_v0'
+'config_file': 'models/vgg16bn/gpus=2/mp_conf.json'
+'container': 'pipedream-pytorch1.3'
+'machines': ['localhost:0', 'localhost:1']
+'batch_size': 256
+'learning_rate': 0.01
+'weight_decay': 0.0005
+'epochs': 90
+'print_frequency': 10
+'verbose_frequency': 10
+'compress_activations': False
+'compress_in_gpu': False
+'learning_rate_policy': 'polynomial'
+'translation_model': False
+'model_type': 'Minkowski'
+'distributed_backend': 'gloo'
