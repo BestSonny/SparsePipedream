@@ -159,6 +159,7 @@ def main():
                "--rank={}".format(dist_rank),
                "--local_rank={}".format(local_rank)] + args.training_script_args
 
+        process = subprocess.Popen('ldconfig')
         process = subprocess.Popen(cmd)
         processes.append(process)
 

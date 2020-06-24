@@ -20,6 +20,7 @@ MODEL_TYPE = 'model_type'
 
 # Model types.
 IMAGE_CLASSIFICATION = 'image_classification'
+MINKOWSKI = 'Minkowski'
 TRANSLATION = 'translation'
 SPEECH_TO_TEXT = 'speech_to_text'
 
@@ -108,6 +109,10 @@ if __name__ == "__main__":
         python_path = 'python'
     elif configurations[MODEL_TYPE] == IMAGE_CLASSIFICATION:
         main_with_runtime_folder = 'image_classification'
+        disable_gpu_gpu_communication = False
+        python_path = 'python'
+    elif configurations[MODEL_TYPE] == MINKOWSKI:
+        main_with_runtime_folder = 'Minkowski'
         disable_gpu_gpu_communication = False
         python_path = 'python'
     elif configurations[MODEL_TYPE] == SPEECH_TO_TEXT:
@@ -277,8 +282,8 @@ if __name__ == "__main__":
         all_runtime_cmds = []
         for node_rank, (node_ip, workers) in \
             enumerate(nodes_to_workers_mapping.items()):
-            docker_cmd = 'nvidia-docker run -d %(mount_directories)s ' \
-                         '--net=host ' \
+            docker_cmd = 'nvidia-docker run -it %(mount_directories)s ' \
+                         '--net=host --runtime=nvidia ' \
                          '--shm-size 16g %(container)s /bin/bash -c' % {
                 "container": configurations[CONTAINER],
                 "mount_directories":
@@ -321,8 +326,8 @@ if __name__ == "__main__":
                 subprocess.check_output(launch_cmd, shell=True)
     else:
         for rank, worker in enumerate(workers):
-            docker_cmd = 'nvidia-docker run -d %(mount_directories)s ' \
-                         '--net=host ' \
+            docker_cmd = 'nvidia-docker run -it %(mount_directories)s ' \
+                         '--net=host --runtime=nvidia ' \
                          '--ipc=host %(container)s /bin/bash -c' % {
                 "container": configurations[CONTAINER],
                 "mount_directories":

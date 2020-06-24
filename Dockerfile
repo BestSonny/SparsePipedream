@@ -1,42 +1,38 @@
-#
-# This example Dockerfile illustrates a method to apply
-# patches to the source code in NVIDIA's PyTorch
-# container image and to rebuild PyTorch.  The RUN command
-# included below will rebuild PyTorch in the same way as
-# it was built in the original image.
-#
-# By applying customizations through a Dockerfile and
-# `docker build` in this manner rather than modifying the
-# container interactively, it will be straightforward to
-# apply the same changes to later versions of the PyTorch
-# container image.
-#
-# https://docs.docker.com/engine/reference/builder/
-#
-FROM nvcr.io/nvidia/pytorch:19.05-py3
+FROM nvcr.io/nvidia/pytorch:20.03-py3
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        texlive-latex-extra \
-      && \
+    texlive-latex-extra texlive-latex-recommended texlive-pictures && \
     rm -rf /var/lib/apt/lists/
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
-# Bring in changes from outside container to /tmp
-# (assumes pre_hook.patch is in same directory as Dockerfile)
-COPY pre_hook.patch /tmp
+RUN rm -rf /opt/pytorch
+RUN ldconfig
+RUN git clone https://github.com/BestSonny/pytorch.git --recursive
 
-# Change working directory to PyTorch source path
-WORKDIR /opt/pytorch
-
-# Apply modifications and re-build PyTorch
-RUN cd pytorch && patch -p1 < /tmp/pre_hook.patch && \
+# # Apply modifications and re-build PyTorch
+RUN cd pytorch && \
     TORCH_CUDA_ARCH_LIST="5.2 6.0 6.1 7.0 7.5+PTX" \
     CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
     NCCL_INCLUDE_DIR="/usr/include/" \
     NCCL_LIB_DIR="/usr/lib/" \
-    python setup.py install && python setup.py clean
+    python setup.py install
 
-# Reset default working directory
+# # Reset default working directory
+WORKDIR /workspace
+
+ENV CUDA_HOME "/usr/local/cuda-10.2"
+ENV PATH /usr/local/nvidia/bin:/usr/local/cuda-10.2/bin:${PATH}
+ENV FORCE_CUDA=1
+
+RUN git clone https://github.com/BestSonny/MinkowskiEngineM.git && \
+    cd MinkowskiEngineM && \
+    TORCH_CUDA_ARCH_LIST="5.2 6.0 6.1 7.0 7.5+PTX" \
+    CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
+    NCCL_INCLUDE_DIR="/usr/include/" \
+    NCCL_LIB_DIR="/usr/lib/" \
+    python setup.py install --force_cuda
+
+# # Reset default working directory
 WORKDIR /workspace
