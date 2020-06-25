@@ -1,9 +1,9 @@
 # Sanitized setup script. Sets up drivers and nvidia-docker2.
 
-# For nvidia-driver, version 418.
+# For nvidia-driver, version 440.
 sudo add-apt-repository ppa:graphics-drivers/ppa
 sudo apt update
-sudo apt install -y nvidia-418 nvidia-settings
+sudo apt-get install nvidia-driver-440 nvidia-settings
 
 # For nvidia-docker2. Need to reboot the server after this.
 sudo apt-get install -y \
