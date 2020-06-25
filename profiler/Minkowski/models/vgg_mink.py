@@ -41,7 +41,7 @@ class VGG(nn.Module):
     def __init__(self, features, out_channels=1000, D=3, init_weights=True):
         super(VGG, self).__init__()
         self.features = features
-        self.glob_avg = ME.MinkowskiGlobalMaxPooling() #nn.AdaptiveAvgPool2d((7, 7))
+        self.glob_avg = ME.MinkowskiGlobalMaxPooling() 
         self.Dropout = Dropout()
         self.classifier = nn.Sequential(
             ME.MinkowskiLinear(512, 4096),
@@ -58,7 +58,6 @@ class VGG(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = self.glob_avg(x)
-        #x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
 
@@ -68,9 +67,9 @@ class VGG(nn.Module):
                 nn.init.kaiming_normal_(m.kernel, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
-            elif isinstance(m, ME.MinkowskiBatchNorm):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, ME.MinkowskiInstanceNorm):
+                nn.init.constant_(m.bn.weight, 1)
+                nn.init.constant_(m.bn.bias, 0)
 
 
 def make_layers(cfg, batch_norm=False, in_channel=3, D=3):
@@ -82,7 +81,7 @@ def make_layers(cfg, batch_norm=False, in_channel=3, D=3):
         else:
             conv = ME.MinkowskiConvolution(in_channels, v, kernel_size=3, stride=1, dilation=1, has_bias=False, dimension=D)
             if batch_norm:
-                layers += [conv, ME.MinkowskiBatchNorm(v), ME.MinkowskiReLU(inplace=True)]
+                layers += [conv, ME.MinkowskiInstanceNorm(v), ME.MinkowskiReLU(inplace=True)]
             else:
                 layers += [conv, ME.MinkowskiReLU(inplace=True)]
             in_channels = v
