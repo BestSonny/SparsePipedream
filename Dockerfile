@@ -26,6 +26,8 @@ ENV CUDA_HOME "/usr/local/cuda-10.2"
 ENV PATH /usr/local/nvidia/bin:/usr/local/cuda-10.2/bin:${PATH}
 ENV FORCE_CUDA=1
 
+RUN pip install -r requirements.txt
+
 RUN git clone https://github.com/BestSonny/MinkowskiEngineM.git && \
     cd MinkowskiEngineM && \
     TORCH_CUDA_ARCH_LIST="5.2 6.0 6.1 7.0 7.5+PTX" \

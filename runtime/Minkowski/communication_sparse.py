@@ -805,13 +805,13 @@ def _recv_sparse(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,
                                             dtype=torch.int)
         dist.recv(tensor=feats_tensor_shape,
                   src=src_rank,
-                  tag=tag+1)
+                  tag=tag)
         feats_tensor_shape = list(map(lambda x: int(x),
                                          feats_tensor_shape))
         feats = torch.zeros(feats_tensor_shape, dtype=dtype[1])
         dist.recv(tensor=feats,
                   src=src_rank,
-                  tag=tag+1)
+                  tag=tag)
         feats = feats.cuda()
 
         # Receive stride_tensor shape and tensor.
@@ -819,13 +819,13 @@ def _recv_sparse(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,
                                             dtype=torch.int)
         dist.recv(tensor=stride_tensor_shape,
                   src=src_rank,
-                  tag=tag+2)
+                  tag=tag)
         stride_tensor_shape = list(map(lambda x: int(x),
                                          stride_tensor_shape))
         stride_tensor = torch.zeros(stride_tensor_shape, dtype=dtype[2])
         dist.recv(tensor=stride_tensor,
                   src=src_rank,
-                  tag=tag+2)
+                  tag=tag)
         sparse_tensor = ME.SparseTensor(feats=feats, coords=coords, tensor_stride=stride_tensor)
 
     assert sparse_tensor.F.is_cuda
@@ -922,9 +922,9 @@ def _send_sparse(sparse_tensor, tensor_name, src_rank, dst_rank, tag, sub_proces
         dist.send(tensor=coords, dst=dst_rank, tag=tag)
         # Send feats shape and tensor
         tensor_shape = torch.tensor(feats.shape, dtype=torch.int)
-        dist.send(tensor=tensor_shape, dst=dst_rank, tag=tag+1)
-        dist.send(tensor=feats, dst=dst_rank, tag=tag+1)
+        dist.send(tensor=tensor_shape, dst=dst_rank, tag=tag)
+        dist.send(tensor=feats, dst=dst_rank, tag=tag)
         # Send tensor_stride shape and tensor
         tensor_shape = torch.tensor(tensor_stride.shape, dtype=torch.int)
-        dist.send(tensor=tensor_shape, dst=dst_rank, tag=tag+2)
-        dist.send(tensor=tensor_stride, dst=dst_rank, tag=tag+2)
+        dist.send(tensor=tensor_shape, dst=dst_rank, tag=tag)
+        dist.send(tensor=tensor_stride, dst=dst_rank, tag=tag)
