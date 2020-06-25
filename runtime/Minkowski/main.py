@@ -1,23 +1,23 @@
+#first import dataset and open3d before import torch to avoid error in docker
+import dataset.dataset as dataset
 import torch.utils.data as data
 import os
 import os.path
-import torch
 import numpy as np
 import logging
 import sys
 import json
-#from plyfile import PlyData, PlyElement
 import argparse
 from models.minkunet import MinkUNet34C
 import models.vgg16.vgg_mink as vgg
-import torch.optim as optim
 import time
 import MinkowskiEngine as ME
 import random
-import torch.nn as nn
 import importlib
-from dataset.dataset import ShapeNetDataset, collate_pointcloud_fn
 from multiprocessing import Manager
+import torch
+import torch.optim as optim
+import torch.nn as nn
 
 torch.manual_seed(0)
 import numpy as np
@@ -68,6 +68,8 @@ parser.add_argument('--dist-backend', default='gloo', type=str,
 parser.add_argument('--voxel_size', type=float, default=0.05)
 parser.add_argument('--max_iter', type=int, default=120000)
 parser.add_argument('--val_freq', type=int, default=1000)
+parser.add_argument('--dataset', default='modelnet40', type=str,
+                    help='dataset name, modelnet40 or shapenet')
 
 best_prec1 = 0
 args = parser.parse_args()
@@ -115,7 +117,7 @@ def main():
     module = importlib.import_module(args.module)
     args.arch = module.arch()
     model = module.full_model()
-    #model = vgg.vgg16(out_channels=16)
+    #model = vgg.vgg16_bn(out_channels=40)
     print("model:", model)
 
     model = model.cuda()
@@ -133,19 +135,34 @@ def main():
     #                             betas=(0.9,0.999),
     #                             weight_decay=args.weight_decay)
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+                                 momentum=args.momentum,
+                                 weight_decay=args.weight_decay)
     # Data loading code
     manager = Manager()
     shared_dict = manager.dict() #create cache for storing data
-    train_dataset = ShapeNetDataset(root=args.data_dir,
-                              shared_dict=shared_dict,
-                              classification=True,
-                              voxel_size=args.voxel_size)
-    val_dataset = ShapeNetDataset(root=args.data_dir,
-                              classification=True,
-                              split='val',
-                              voxel_size=args.voxel_size)
+    if args.dataset == 'shapenet':
+        train_dataset = dataset.ShapeNetDataset(root=args.data_dir,
+                                                shared_dict=shared_dict,
+                                                classification=True,
+                                                voxel_size=args.voxel_size)
+        val_dataset = dataset.ShapeNetDataset(root=args.data_dir,
+                                              classification=True,
+                                              split='val',
+                                              voxel_size=args.voxel_size)
+    else:
+        train_transpose = dataset.Compose([dataset.RandomRotation(axis=np.array([0, 0, 1])),
+                                           dataset.RandomTranslation(),
+                                           dataset.RandomScale(0.8, 1.2),
+                                           dataset.RandomShear()])
+        train_dataset = dataset.ModelNet40Dataset(root=args.data_dir,
+                                                  shared_dict=shared_dict,
+                                                  split='train',
+                                                  voxel_size=args.voxel_size,
+                                                  transform=train_transpose)
+        val_dataset = dataset.ModelNet40Dataset(root=args.data_dir,
+                                                shared_dict={},
+                                                split='val',
+                                                voxel_size=args.voxel_size)
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
         val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
@@ -154,17 +171,17 @@ def main():
         val_sampler  = None
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
-                                        batch_size=args.batch_size,
-                                        shuffle=(train_sampler is None),
-                                        num_workers=args.workers,
-                                        pin_memory=True, sampler=train_sampler,
-                                        collate_fn=collate_pointcloud_fn)
+                                             batch_size=args.batch_size,
+                                             shuffle=(train_sampler is None),
+                                             num_workers=args.workers,
+                                             pin_memory=True, sampler=train_sampler,
+                                             collate_fn=dataset.collate_pointcloud_fn)
     val_loader = torch.utils.data.DataLoader(val_dataset,
-                                        batch_size=args.eval_batch_size, 
-                                        shuffle=False,
-                                        num_workers=args.workers, pin_memory=True,
-                                        sampler=val_sampler,
-                                        collate_fn=collate_pointcloud_fn)
+                                             batch_size=args.eval_batch_size, 
+                                             shuffle=False,
+                                             num_workers=args.workers, pin_memory=True,
+                                             sampler=val_sampler,
+                                             collate_fn=dataset.collate_pointcloud_fn)
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch) 
@@ -211,16 +228,6 @@ def train(train_loader, model, criterion, optimizer, epoch):
         coords = data_dict['coords']
         feats = data_dict['feats']
         labels = data_dict['labels']
-        #print("coords len:", len(coords))
-        #torch.cuda.synchronize()
-        #st1 = time()
-        #len_c = coords.size(0)
-        #len2 = min(40000, len_c)
-        #indice = random.sample(range(len_c), len2)
-        #coords = coords[indice]
-        #labels = labels[indice]
-        #torch.cuda.synchronize()
-        #data_select_time.update(time() - st1)
         sin = ME.SparseTensor(
             feats, #coords[:, :3] * args.voxel_size,
             coords.int(),
