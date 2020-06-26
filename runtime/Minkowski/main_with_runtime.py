@@ -1,6 +1,7 @@
-import torch.utils.data as data
 import os
 import os.path
+# Need to import open3d in dataset before torch in order to run in docker
+import dataset.dataset as dataset
 import torch
 import numpy as np
 import logging
@@ -24,12 +25,11 @@ import torch.distributed as dist
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
-import torchvision.datasets as datasets
 from multiprocessing import Manager
 
 import communication_sparse as comm_sparse
 import runtime_sparse
-from dataset.dataset import ShapeNetDataset, collate_pointcloud_fn
+
 sys.path.append("../")
 import adam
 import sgd
@@ -106,6 +106,8 @@ parser.add_argument('--recompute', action='store_true',
 parser.add_argument('--macrobatch', action='store_true',
                     help='Macrobatch updates to save memory')
 parser.add_argument('--voxel_size', type=float, default=0.05)
+parser.add_argument('--dataset', default='modelnet40', type=str,
+                    help='dataset name, modelnet40 or shapenet')
 
 ch = logging.StreamHandler(sys.stdout)
 logging.getLogger().setLevel(logging.INFO)
@@ -264,18 +266,30 @@ def main():
     # Data loading code
     manager = Manager()
     shared_dict = manager.dict() #create cache for storing data
-    train_dataset = ShapeNetDataset(root=args.data_dir,
-                                    shared_dict=shared_dict,
-                                    classification=True,
-                                    voxel_size=args.voxel_size)
-    if args.synthetic_data:
-        train_dataset = SyntheticDataset((3, 224, 224), len(train_dataset))
-    #shared_dict_val = manager.dict()
-    val_dataset = ShapeNetDataset(root=args.data_dir,
-                                  #shared_dict=shared_dict_val,
-                                  classification=True,
-                                  split='val',
-                                  voxel_size=args.voxel_size)
+    if args.dataset == 'shapenet':
+        train_dataset = ShapeNetDataset(root=args.data_dir,
+                                        shared_dict=shared_dict,
+                                        classification=True,
+                                        voxel_size=args.voxel_size)
+        if args.synthetic_data:
+            train_dataset = SyntheticDataset((3, 224, 224), len(train_dataset))
+        val_dataset = ShapeNetDataset(root=args.data_dir,classification=True,
+                                      split='val',
+                                      voxel_size=args.voxel_size)
+    else:
+        train_transpose = dataset.Compose([dataset.RandomRotation(axis=np.array([0, 0, 1])),
+                                           dataset.RandomTranslation(),
+                                           dataset.RandomScale(0.8, 1.2),
+                                           dataset.RandomShear()])
+        train_dataset = dataset.ModelNet40Dataset(root=args.data_dir,
+                                                  shared_dict=shared_dict,
+                                                  split='train',
+                                                  voxel_size=args.voxel_size,
+                                                  transform=train_transpose)
+        val_dataset = dataset.ModelNet40Dataset(root=args.data_dir,
+                                                shared_dict={},
+                                                split='val',
+                                                voxel_size=args.voxel_size)
 
     distributed_sampler = False
     train_sampler = None
@@ -297,14 +311,14 @@ def main():
                                         num_workers=int(args.workers),
                                         pin_memory=True,
                                         sampler=train_sampler,
-                                        collate_fn=collate_pointcloud_fn)
+                                        collate_fn=dataset.collate_pointcloud_fn)
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=args.batch_size,
                                              shuffle=False,
                                              num_workers=int(args.workers),
                                              pin_memory=True,
                                              sampler=val_sampler,
-                                             collate_fn=collate_pointcloud_fn)
+                                             collate_fn=dataset.collate_pointcloud_fn)
     # if checkpoint is loaded, start by running validation
     if args.resume:
         assert args.start_epoch > 0
