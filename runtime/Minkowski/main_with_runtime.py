@@ -34,6 +34,7 @@ sys.path.append("../")
 import adam
 import sgd
 
+torch.autograd.set_detect_anomaly(True)
 #torch.manual_seed(0)
 #import numpy as np
 #np.random.seed(0)

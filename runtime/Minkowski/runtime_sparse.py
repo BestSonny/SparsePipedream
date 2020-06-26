@@ -5,6 +5,7 @@ import collections
 import itertools
 import time
 import torch
+from torch.nn import Module
 import torch.distributed as dist
 import sys
 
@@ -19,7 +20,6 @@ SPEECH_TO_TEXT = "speech_to_text"
 POINT_CLOUD = "point_cloud"
 POINT_CLOUD_SEGMENTATION = "point_cloud_segmentation"
 MINKOWSKI = "minkowski"
-
 
 class ModulesWithDependencies:
     def __init__(self, modules_with_dependencies):
@@ -101,13 +101,11 @@ class StageRuntimeSparse:
             for input_tensor in input_tensors:
                 if input_tensor not in self.tensor_tags:
                     self.tensor_tags[input_tensor] = tensor_tag
-                    # change by keke here from 1 to 3
-                    # 1 SparseTensor need to trasnfer 3 times
-                    tensor_tag += 3
+                    tensor_tag += 1
             for output_tensor in output_tensors:
                 if output_tensor not in self.tensor_tags:
                     self.tensor_tags[output_tensor] = tensor_tag
-                    tensor_tag += 3
+                    tensor_tag += 1
         for target_tensor_name in sorted(self.target_tensor_names):
             self.tensor_tags[target_tensor_name] = tensor_tag
             tensor_tag += 1
@@ -228,9 +226,10 @@ class StageRuntimeSparse:
                     if model_inputs not in self.tensor_tags:
                         self.tensor_tags[model_inputs] = tensor_tag
                         # changed here by keke for SparseTensor
-                        tensor_tag += 3
+                        tensor_tag += 1
 
         modules = self.modules_with_dependencies.modules()
+        
         for i in range(len(modules)):
             modules[i] = modules[i].cuda()
             if self.fp16:
@@ -257,14 +256,10 @@ class StageRuntimeSparse:
         # run_backward methods downstream.
         num_parameters = 0
         for i in range(len(modules)):
+            # modules[i] = MinkowskiSyncBatchNorm.convert_sync_batchnorm(modules[i], group)
             if group is not None:
                 if ((i < (len(modules)-1) and self.is_criterion)
                     or not self.is_criterion):
-                    #num_parameters += \
-                    #    sum(x.size()[0] * x.size()[1]
-                    #        if len(x.size()) > 1 else x.size()[0]
-                    #        for x in modules[i].parameters() if x.size())
-                    # changed by kk
                     num_parameters += \
                         sum(torch.prod(torch.LongTensor(list(x.size())))
                             for x in modules[i].parameters() if x.size())
@@ -274,7 +269,7 @@ class StageRuntimeSparse:
                         device_ids=[local_rank],
                         output_device=local_rank,
                         find_unused_parameters=True)
-                    modules[i] = ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm(modules[i])
+                    
         if self.num_ranks_in_stage > 1:
             module_size = 4. * num_parameters
             print("Replicating stage: ranks=%d, module_size=%.3f" % (

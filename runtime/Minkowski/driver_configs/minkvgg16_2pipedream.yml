@@ -1,8 +1,8 @@
-'log_directory': '/extra_disk/keke/pipeDream/sparse-pipedream/runtime/Minkowski/results/test_accuracy'
+'log_directory': '/data/panhe/pipedream/runtime/Minkowski/results/test_accuracy'
 'module': 'models.vgg16bn.gpus=2'
-'data_dir': '/extra_disk/keke/pipeDream/pipedream/runtime/point_cloud/dataset/shapenetcore_partanno_segmentation_benchmark_v0'
+'data_dir': '/data/panhe/pipedream/runtime/dataset/shapenetcore_partanno_segmentation_benchmark_v0'
 'config_file': 'models/vgg16bn/gpus=2/mp_conf.json'
-'container': 'pipedream-pytorch1.3'
+'container': 'spare_pipedream:latest'
 'machines': ['localhost:0', 'localhost:1']
 'batch_size': 256
 'learning_rate': 0.01
