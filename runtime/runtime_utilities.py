@@ -12,7 +12,6 @@ class RuntimeStats:
         }
         self.forward = forward
         self.rank = rank
-        self.count = 0
 
     def print_stats(self):
         if self.forward:
@@ -23,16 +22,9 @@ class RuntimeStats:
             units = 'seconds'
             if i == 'receive_tensors_size' or i == 'send_tensors_size':
                 units = 'bytes'
-
-            mm = self.stats[i]
-            if self.count == 0:
-               print_stat += "self.count is 0 \t"
-            else:
-               mm = self.stats[i] / self.count
-            print_stat += "\t %s %.3f %s" % (i, mm, units)
+            print_stat += "\t %s %.3f %s" % (i, self.stats[i], units)
         print(print_stat)
 
     def reset_stats(self):
         for i in self.stats.keys():
             self.stats[i] = 0.0
-        self.count = 0

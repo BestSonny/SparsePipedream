@@ -35,11 +35,11 @@ import adam
 import sgd
 
 torch.autograd.set_detect_anomaly(True)
-#torch.manual_seed(0)
-#import numpy as np
-#np.random.seed(0)
-#torch.backends.cudnn.deterministic = True
-#torch.backends.cudnn.benchmark = False
+# torch.manual_seed(0)
+# import numpy as np
+np.random.seed(0)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 parser = argparse.ArgumentParser(description='PyTorch Pipeline Minkowski Training')
 parser.add_argument('--data_dir', type=str, required=True, help="dataset path")
@@ -243,15 +243,6 @@ def main():
         print("=> loaded checkpoint '{}' (epoch {})"
                 .format(checkpoint_file_path, checkpoint['epoch']))
 
-    #optimizer = adam.AdamWithWeightStashing(r.modules(), r.master_parameters,
-    #                                      r.model_parameters, args.loss_scale,
-    #                                      num_versions=num_versions,
-    #                                      lr=args.lr,
-    #                                      betas=(0.9, 0.999),
-    #                                      #momentum=args.momentum,
-    #                                      weight_decay=args.weight_decay,
-    #                                      verbose_freq=args.verbose_frequency,
-    #                                      macrobatch=args.macrobatch)
     optimizer = sgd.SGDWithWeightStashing(r.modules(), r.master_parameters,
                                           r.model_parameters, args.loss_scale,
                                           num_versions=num_versions,
@@ -343,26 +334,20 @@ def main():
             best_prec1 = max(prec1, best_prec1)
 
             should_save_checkpoint = args.checkpoint_dir_not_nfs or r.rank_in_stage == 0
-            #if args.checkpoint_dir and should_save_checkpoint:
-            #    save_checkpoint({
-            #        'epoch': epoch + 1,
-            #        'arch': args.arch,
-            #        'state_dict': r.state_dict(),
-            #        'best_prec1': best_prec1,
-            #        'optimizer' : optimizer.state_dict(),
-            #    }, args.checkpoint_dir, r.stage)
+            if args.checkpoint_dir and should_save_checkpoint:
+               save_checkpoint({
+                   'epoch': epoch + 1,
+                   'arch': args.arch,
+                   'state_dict': r.state_dict(),
+                   'best_prec1': best_prec1,
+                   'optimizer' : optimizer.state_dict(),
+               }, args.checkpoint_dir, r.stage)
             print("Epoch: %d, best_prec1: %f" % (epoch, best_prec1))
     end_run = time.time()
     print("Total running time: %.3f" % (end_run - start_run))
 
 def train(train_loader, r, optimizer, epoch):
     batch_time = AverageMeter()
-    #data_time = AverageMeter()
-    #data_select_time = AverageMeter()
-    #sparse_data_time = AverageMeter()
-    #data_transfer_time = AverageMeter()
-    #forward_time = AverageMeter()
-    #bwd_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
