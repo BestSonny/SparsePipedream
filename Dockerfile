@@ -1,7 +1,7 @@
 FROM nvcr.io/nvidia/pytorch:20.03-py3
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    texlive-latex-extra texlive-latex-recommended texlive-pictures && \
+    texlive-latex-extra freeglut3-dev libgl1-mesa-glx && \
     rm -rf /var/lib/apt/lists/
 
 COPY requirements.txt requirements.txt

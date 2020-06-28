@@ -5,6 +5,7 @@ import collections
 import itertools
 import time
 import torch
+from torch.nn import Module
 import torch.distributed as dist
 import sys
 
@@ -19,7 +20,6 @@ SPEECH_TO_TEXT = "speech_to_text"
 POINT_CLOUD = "point_cloud"
 POINT_CLOUD_SEGMENTATION = "point_cloud_segmentation"
 MINKOWSKI = "minkowski"
-
 
 class ModulesWithDependencies:
     def __init__(self, modules_with_dependencies):
@@ -101,13 +101,11 @@ class StageRuntimeSparse:
             for input_tensor in input_tensors:
                 if input_tensor not in self.tensor_tags:
                     self.tensor_tags[input_tensor] = tensor_tag
-                    # change by keke here from 1 to 3
-                    # 1 SparseTensor need to trasnfer 3 times
-                    tensor_tag += 3
+                    tensor_tag += 1
             for output_tensor in output_tensors:
                 if output_tensor not in self.tensor_tags:
                     self.tensor_tags[output_tensor] = tensor_tag
-                    tensor_tag += 3
+                    tensor_tag += 1
         for target_tensor_name in sorted(self.target_tensor_names):
             self.tensor_tags[target_tensor_name] = tensor_tag
             tensor_tag += 1
@@ -228,9 +226,10 @@ class StageRuntimeSparse:
                     if model_inputs not in self.tensor_tags:
                         self.tensor_tags[model_inputs] = tensor_tag
                         # changed here by keke for SparseTensor
-                        tensor_tag += 3
+                        tensor_tag += 1
 
         modules = self.modules_with_dependencies.modules()
+        
         for i in range(len(modules)):
             modules[i] = modules[i].cuda()
             if self.fp16:
@@ -257,14 +256,10 @@ class StageRuntimeSparse:
         # run_backward methods downstream.
         num_parameters = 0
         for i in range(len(modules)):
+            modules[i] = ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm(modules[i], group)
             if group is not None:
                 if ((i < (len(modules)-1) and self.is_criterion)
                     or not self.is_criterion):
-                    #num_parameters += \
-                    #    sum(x.size()[0] * x.size()[1]
-                    #        if len(x.size()) > 1 else x.size()[0]
-                    #        for x in modules[i].parameters() if x.size())
-                    # changed by kk
                     num_parameters += \
                         sum(torch.prod(torch.LongTensor(list(x.size())))
                             for x in modules[i].parameters() if x.size())
@@ -274,7 +269,7 @@ class StageRuntimeSparse:
                         device_ids=[local_rank],
                         output_device=local_rank,
                         find_unused_parameters=True)
-                    modules[i] = ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm(modules[i])
+                    
         if self.num_ranks_in_stage > 1:
             module_size = 4. * num_parameters
             print("Replicating stage: ranks=%d, module_size=%.3f" % (
@@ -421,27 +416,14 @@ class StageRuntimeSparse:
                 self.tensors[-1]["target"] = target.cuda(non_blocking=True)
                 self.tensors[-1]["target_length"] = target_sizes.cuda(
                     non_blocking=True)
-            elif self.model_type == POINT_CLOUD:
-                (input, target) = input
-                input = input.transpose(2, 1).contiguous()
-                self.tensors[-1]["input0"] = input.cuda(non_blocking=True)
-                target = target[:, 0]
-                self.tensors[-1]["target"] = target.cuda(non_blocking=True) 
-            elif self.model_type == POINT_CLOUD_SEGMENTATION:
-                (input, target) = input
-                self.tensors[-1]["input0"] = input.cuda(non_blocking=True)
-                self.tensors[-1]["target"] = target.cuda(non_blocking=True) 
             elif self.model_type == MINKOWSKI:
                 coords = input['coords']
                 feats = input['feats']
                 labels = input['labels']
-                # TODO: implement SparseTensor.cuda function
                 sin = ME.SparseTensor(feats=feats, coords=coords.int())
                 device = torch.cuda.current_device()
-                #print("current device:", device)
                 self.tensors[-1]["input0"] = sin.to(device)
                 self.tensors[-1]["target"] = labels.cuda(non_blocking=True)
-                #print("Send tensor input0", sin.C.shape, sin.F.shape)
         else:
             # Receive all required tensors from upstream machines.
             for input_name in self.receive_ranks:
@@ -462,7 +444,6 @@ class StageRuntimeSparse:
                     tensor_size += tensor.F.element_size() * tensor.F.nelement()
                     stride = torch.tensor(tensor.tensor_stride, dtype=torch.int)
                     tensor_size += stride.element_size() * stride.nelement()
-                    #print("Recieved tensor:", input_name, tensor.C.shape, tensor.F.shape)
                 else:
                     tensor_size += tensor.element_size() * tensor.nelement()
                 self.forward_stats.stats['receive_tensors_size'] += tensor_size
@@ -491,7 +472,6 @@ class StageRuntimeSparse:
                 tensor_size += tensor.F.element_size() * tensor.F.nelement()
                 stride = torch.tensor(tensor.tensor_stride, dtype=torch.int)
                 tensor_size += stride.element_size() * stride.nelement()
-                #print("Send tensor:", output_name, tensor.C.shape, tensor.F.shape)
             else:
                 tensor_size += tensor.element_size() * tensor.nelement()
             self.forward_stats.stats['send_tensors_size'] += tensor_size
@@ -502,7 +482,6 @@ class StageRuntimeSparse:
         for output_name in self.send_ranks:
             if output_name in self.target_tensor_names:
                 continue
-            #print("before receive_tensors_backward:", len(self.gradients))
 
             self.gradients[output_name] = \
                 self.comm_handler.recv(
@@ -518,15 +497,9 @@ class StageRuntimeSparse:
                 tensor_size += tensor.F.element_size() * tensor.F.nelement()
                 stride = torch.tensor(tensor.tensor_stride, dtype=torch.int)
                 tensor_size += stride.element_size() * stride.nelement()
-                #print("Receive tensor backward:", output_name, tensor.C.shape, tensor.F.shape)
             else:
                 tensor_size += tensor.element_size() * tensor.nelement()
-                #print("Receive tensor backward:", output_name, tensor.size())
             self.backward_stats.stats['receive_tensors_size'] += tensor_size
-
-            #self.backward_stats.stats['receive_tensors_size'] += \
-            #     (self.gradients[output_name].element_size() *
-            #      self.gradients[output_name].nelement())
 
     def send_tensors_backward(self):
         # Send all required gradients upstream.
@@ -548,10 +521,8 @@ class StageRuntimeSparse:
                 tensor_size += tensor.F.element_size() * tensor.F.nelement()
                 stride = torch.tensor(tensor.tensor_stride, dtype=torch.int)
                 tensor_size += stride.element_size() * stride.nelement()
-                #print("Send tensor backward:", input_name, tensor.C.shape, tensor.F.shape)
             else:
                 tensor_size += tensor.element_size() * tensor.nelement()
-                #print("Send tensor backward:", input_name, tensor.size())
             self.backward_stats.stats['send_tensors_size'] += tensor_size
 
         if self.num_ranks_in_previous_stage > 0:
@@ -563,57 +534,29 @@ class StageRuntimeSparse:
     def run_forward(self, recompute_step=False):
         """Run forward pass.
         """
-        # Debug
-        #for module in self.modules_with_dependencies.modules():
-        #    for k, v in module.state_dict().items():
-        #        print("debug module key and value:", k, v.size(), v.requires_grad)
-        #        if k == "layer5.bn.num_batches_tracked":
-        #            print("layer5.bn.num_batches_tracked:", v)
-        #    for name, parameter in module.named_parameters():
-        #        print("debug module key and value:", name, parameter.data.size(), parameter.requires_grad)
-
-        # Receive tensors from previous worker.
-        # Added by kk
-        self.forward_stats.count += 1
-        torch.cuda.synchronize()
         start = time.time()
         self.receive_tensors_forward()
-        torch.cuda.synchronize()
         dataIn_time = time.time() - start
         tensors = self.tensors[-1]
 
         # Run forward pass.
-        torch.cuda.synchronize()
         start = time.time()
         self._run_forward(tensors)
-        torch.cuda.synchronize()
         compute_time = time.time() - start
         self.forward_stats.stats['receive_tensors'] += dataIn_time
         self.forward_stats.stats['compute_time'] += compute_time
 
         # Send tensors forward.
-        torch.cuda.synchronize()
         start = time.time()
         self.send_tensors_forward()
-        torch.cuda.synchronize()
         tensor_send_time = time.time() - start
         self.forward_stats.stats['send_tensors'] += tensor_send_time 
         if self.verbose_freq > 0 and self.forward_minibatch_id % self.verbose_freq == 0:
             self.forward_stats.print_stats()
-        #self.forward_stats.reset_stats()
+        self.forward_stats.reset_stats()
         self.forward_minibatch_id += 1
 
     def _run_forward(self, tensors):
-        # Perform forward pass through model (self.modules_with_dependencies already
-        # has modules in topological order).
-        def feature_transform_regularizer(trans):
-            d = trans.size()[1]
-            batchsize = trans.size()[0]
-            I = torch.eye(d)[None, :, :]
-            if trans.is_cuda:
-                I = I.cuda()
-            loss = torch.mean(torch.norm(torch.bmm(trans, trans.transpose(2,1)) - I, dim=(1,2)))
-            return loss
 
         modules = self.modules_with_dependencies.modules()
         all_input_names = self.modules_with_dependencies.all_input_names()
@@ -629,17 +572,11 @@ class StageRuntimeSparse:
                     target_sizes = tensors["target_length"].cpu()
                     input0_size = tensors["input0_size"].cpu()
                     module_outputs = [module(output, target, output_sizes, target_sizes) / input0_size[0]]
-                elif self.model_type == POINT_CLOUD:
-                    module_output = module(tensors[input_names[0]], tensors["target"])
-                    if len(input_names) == 2:
-                       module_output += feature_transform_regularizer(tensors[input_names[1]]) * 0.001 
-                    module_outputs = [module_output]
                 elif self.model_type == MINKOWSKI:
                     module_outputs = [module(tensors[input_name].F,
                                              tensors["target"])
                                       for input_name in input_names]
                     module_outputs = [sum(module_outputs)]
-                    
                 else:
                     module_outputs = [module(tensors[input_name],
                                              tensors["target"])
@@ -661,10 +598,6 @@ class StageRuntimeSparse:
             loss_per_batch = tensors[output_names[0]] * tensors[self.criterion_input_name].size(1)
             loss_per_token = loss_per_batch / tensors["target_length"][0].item()
             self.loss = loss_per_token
-        #elif self.is_criterion and self.model_type == POINT_CLOUD:
-        #    self.loss = tensors[output_names[0]]
-        #    if len(input_names) == 3 and tensors[input_names[2]]:
-        #        self.loss += feature_transform_regularizer(tensors[input_names[2]]) * 0.001
         elif self.is_criterion:
             self.loss = tensors[output_names[0]]
         else:
@@ -672,13 +605,8 @@ class StageRuntimeSparse:
 
     def run_backward(self):
         # Receive input gradients needed for backward pass.
-        # Added by keke
-        self.backward_stats.count += 1
-        torch.cuda.synchronize()
         start = time.time()
         self.receive_tensors_backward()
-        #print("finished receive_tensors_backward")
-        torch.cuda.synchronize()
         dataIn_time = time.time() - start
         self.backward_stats.stats['receive_tensors'] += dataIn_time
         # Backward pass through modules in reverse order.
@@ -695,7 +623,6 @@ class StageRuntimeSparse:
         all_input_names = self.modules_with_dependencies.all_input_names()
         all_output_names = self.modules_with_dependencies.all_output_names()
 
-        torch.cuda.synchronize()
         start = time.time()
         for (input_names, output_names) in zip(all_input_names, all_output_names):
             for input_name in input_names:
@@ -728,32 +655,24 @@ class StageRuntimeSparse:
             def hook(input_gradient):
                 input_gradients[input_name] = input_gradient
             return hook
-
+    
         for input_name in inputs:
             if input_name != "input0" and input_name != "input1" and input_name != "input2" \
                     and inputs[input_name].requires_grad:
-                #inputs[input_name].register_hook(hook_wrapper(input_name))
-                inputs[input_name].F.register_hook(hook_wrapper(input_name))
+                if hasattr(inputs[input_name], 'F'): # spares tensor
+                    inputs[input_name].F.register_hook(hook_wrapper(input_name))
+                else:
+                    inputs[input_name].F.register_hook(hook_wrapper(input_name))
 
         if "loss" in outputs:
             outputs["loss"] *= self.loss_scale
 
         # Perform backward pass.
         # Rank in the last stage
-        if self.is_criterion:
-            torch.autograd.backward(tuple([outputs[output_name] for output_name in outputs]),
+        torch.autograd.backward(tuple([outputs[output_name].F if hasattr(outputs[output_name], 'F') 
+                                else outputs[output_name] for output_name in outputs]),
                                 grad_tensors=tuple([output_gradients[output_name]
-                                                    for output_name in outputs]))
-        else:
-            # Construct Sparse gradients
-            #for output_name in outputs:
-            #    tensor = outputs[output_name]
-            #    tensor_grad = output_gradients[output_name]
-            #    print("torch.autograd.backward output_name:", output_name, tensor.C.size(), tensor.F.size(), tensor_grad.size())
-            torch.autograd.backward(tuple([outputs[output_name].F for output_name in outputs]),
-                                grad_tensors=tuple([output_gradients[output_name]
-                                                    for output_name in outputs]))
-
+                                for output_name in outputs]))
         # Input tensors don't need gradients.
         for input_name in inputs:
             if not inputs[input_name].requires_grad:
@@ -762,19 +681,17 @@ class StageRuntimeSparse:
 
             if input_name != "input0" and input_name != "input1" and input_name != "input2" and input_name != "input":
                 self.gradients[input_name] = input_gradients[input_name]
-        torch.cuda.synchronize()
         compute_time = time.time() - start
         self.backward_stats.stats['compute_time'] += compute_time
 
         # Send output gradients.
-        torch.cuda.synchronize()
         start = time.time()
         self.send_tensors_backward()
         tensor_send_time = time.time() - start
         self.backward_stats.stats['send_tensors'] += tensor_send_time 
         if self.verbose_freq > 0 and self.backward_minibatch_id % self.verbose_freq == 0:
             self.backward_stats.print_stats()
-        #self.backward_stats.reset_stats()
+        self.backward_stats.reset_stats()
         self.backward_minibatch_id += 1
 
     def num_tokens(self):

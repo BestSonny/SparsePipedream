@@ -6,3 +6,4 @@ mlperf-compliance==0.0.10
 graphviz
 matplotlib
 seaborn
+open3d
