@@ -3,7 +3,6 @@ import warnings
 import os
 from torch.utils.data import Dataset
 warnings.filterwarnings('ignore')
-#from dataset import AverageMeter, collate_pointcloud_fn
 import MinkowskiEngine as ME
 import time
 import torch.nn as nn
@@ -57,7 +56,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 class ModelNetDataLoader(Dataset):
-    def __init__(self, root,  shared_dict={}, voxel_size=0.05, split='train', uniform=False, normal_channel=True, cache_size=15000):
+    def __init__(self, root,  shared_dict={}, voxel_size=0.05, split='train', uniform=False, data_augmentation=True, cache_size=15000):
         self.root = root
         self.voxel_size = voxel_size
         self.uniform = uniform
@@ -65,7 +64,7 @@ class ModelNetDataLoader(Dataset):
 
         self.cat = [line.rstrip() for line in open(self.catfile)]
         self.classes = dict(zip(self.cat, range(len(self.cat))))
-        self.normal_channel = normal_channel
+        self.data_augmentation = data_augmentation
 
         shape_ids = {}
         shape_ids['train'] = [line.rstrip() for line in open(os.path.join(self.root, 'modelnet40_train.txt'))]
@@ -84,7 +83,7 @@ class ModelNetDataLoader(Dataset):
         self.data_time = AverageMeter()
         self.data_agu_time = AverageMeter()
         self.voxel_time = AverageMeter()
-        self.npoints = 2000
+        self.npoints = 4000
 
     def __len__(self):
         return len(self.datapath)
@@ -96,12 +95,11 @@ class ModelNetDataLoader(Dataset):
             fn = self.datapath[index]
             cls = self.classes[self.datapath[index][0]]
             pts = np.loadtxt(fn[1], delimiter=',').astype(np.float32)
-            #if self.uniform:
-            #    point_set = farthest_point_sample(point_set, self.npoints)
-            #else:
-            #    point_set = point_set[0:self.npoints,:]
-            #point_set[:, 0:3] = pc_normalize(point_set[:, 0:3])
-            #if not self.normal_channel:
+            if self.uniform:
+                point_set = farthest_point_sample(point_set, self.npoints)
+            else:
+                point_set = point_set[0:self.npoints,:]
+            point_set[:, 0:3] = pc_normalize(point_set[:, 0:3])
             pts = pts[:, 0:3]
             if len(self.cache) < self.cache_size:
                 self.cache[index] = (pts, cls)
@@ -109,16 +107,16 @@ class ModelNetDataLoader(Dataset):
         start = time.time()
         choice = np.random.choice(len(pts), self.npoints, replace=True)
         point_set = pts[choice, :]
-        #print("point_set:", len(point_set))
+
         point_set = point_set - np.expand_dims(np.mean(point_set, axis = 0), 0) # center
         dist = np.max(np.sqrt(np.sum(point_set ** 2, axis = 1)) ,0)
         point_set = point_set / dist  # scale
 
-        #if self.data_augmentation:
-        theta = np.random.uniform(0, np.pi*2)
-        rotation_matrix = np.array([[np.cos(theta), -np.sin(theta)] ,[np.sin(theta), np.cos(theta)]])
-        point_set[: ,[0 ,2]] = point_set[: ,[0 ,2]].dot(rotation_matrix) # random rotation
-        point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
+        if self.data_augmentation:
+            theta = np.random.uniform(0, np.pi*2)
+            rotation_matrix = np.array([[np.cos(theta), -np.sin(theta)] ,[np.sin(theta), np.cos(theta)]])
+            point_set[: ,[0 ,2]] = point_set[: ,[0 ,2]].dot(rotation_matrix) # random rotation
+            point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
 
         point_set = torch.from_numpy(point_set)
         cls = torch.from_numpy(np.array([cls]).astype(np.int64))
@@ -127,17 +125,13 @@ class ModelNetDataLoader(Dataset):
         quantized_coords = np.floor(point_set / self.voxel_size)
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
         self.voxel_time.update(time.time() - start)
-        #print("index:", index, self.data_time.avg, self.data_agu_time.avg, self.voxel_time.avg)
-        #print("quantized_coords:", len(quantized_coords[inds]))
 
         return quantized_coords[inds], quantized_coords[inds], cls #point_set, cls
 
     def __getitem__(self, index):
         return self._get_item(index)
 
-
-
-class Network3(nn.Module):
+class Network(nn.Module):
     def __init__(self, channels, D):
         nn.Module.__init__(self)
         self.D = D
@@ -187,7 +181,7 @@ if __name__ == '__main__':
     DataLoader = torch.utils.data.DataLoader(data, batch_size=64, num_workers=4, shuffle=True, collate_fn=collate_pointcloud_fn)
     criterion = nn.CrossEntropyLoss()
     channels = [3, 64, 64, 40]
-    net = Network3(channels, D=3)
+    net = Network(channels, D=3)
     net = net.to('cuda')
     optimizer = torch.optim.SGD(net.parameters(), lr=1e-1)
     data_time = AverageMeter()
@@ -211,11 +205,11 @@ if __name__ == '__main__':
             labels = labels.to('cuda')
             torch.cuda.synchronize()
             data_transfer.update(time.time() - s1)
-            #print("Read data time:", i, j, data_time.val, data_time.avg, data_transfer.val, data_transfer.avg)
-            #sout = net(sin)
-            #print("sout.f:", sout.F.shape, "labels:", labels.shape)
-            #loss = criterion(sout.F, labels)
-            #loss.backward()
-            #optimizer.step()
+            print("Read data time:", i, j, data_time.val, data_time.avg, data_transfer.val, data_transfer.avg)
+            sout = net(sin)
+            print("sout.f:", sout.F.shape, "labels:", labels.shape)
+            loss = criterion(sout.F, labels)
+            loss.backward()
+            optimizer.step()
             start = time.time()
         print("Epoch load time:", time.time() - start_epoch, data_time.avg)
