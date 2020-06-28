@@ -8,7 +8,6 @@ import logging
 import sys
 import json
 import argparse
-from models.minkunet import MinkUNet34C
 import models.vgg16.vgg_mink as vgg
 import time
 import MinkowskiEngine as ME
@@ -18,6 +17,7 @@ from multiprocessing import Manager
 import torch
 import torch.optim as optim
 import torch.nn as nn
+from dataset.modelNetDataLoader import ModelNetDataLoader
 
 torch.manual_seed(0)
 import numpy as np
@@ -150,19 +150,14 @@ def main():
                                               split='val',
                                               voxel_size=args.voxel_size)
     else:
-        train_transpose = dataset.Compose([dataset.RandomRotation(axis=np.array([0, 0, 1])),
-                                           dataset.RandomTranslation(),
-                                           dataset.RandomScale(0.8, 1.2),
-                                           dataset.RandomShear()])
-        train_dataset = dataset.ModelNet40Dataset(root=args.data_dir,
-                                                  shared_dict=shared_dict,
-                                                  split='train',
-                                                  voxel_size=args.voxel_size,
-                                                  transform=train_transpose)
-        val_dataset = dataset.ModelNet40Dataset(root=args.data_dir,
-                                                shared_dict={},
-                                                split='val',
-                                                voxel_size=args.voxel_size)
+        train_dataset = ModelNetDataLoader(root=args.data_dir,
+                                           shared_dict=shared_dict,
+                                           split='train',
+                                           voxel_size=args.voxel_size)
+        val_dataset = ModelNetDataLoader(root=args.data_dir,
+                                           shared_dict={},
+                                           split='val',
+                                           voxel_size=args.voxel_size)
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
         val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
