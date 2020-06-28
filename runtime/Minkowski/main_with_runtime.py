@@ -26,6 +26,7 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 from multiprocessing import Manager
+from dataset.modelNetDataLoader import ModelNetDataLoader
 
 import communication_sparse as comm_sparse
 import runtime_sparse
@@ -34,7 +35,7 @@ sys.path.append("../")
 import adam
 import sgd
 
-torch.autograd.set_detect_anomaly(True)
+#torch.autograd.set_detect_anomaly(True)
 # torch.manual_seed(0)
 # import numpy as np
 np.random.seed(0)
@@ -269,19 +270,14 @@ def main():
                                       split='val',
                                       voxel_size=args.voxel_size)
     else:
-        train_transpose = dataset.Compose([dataset.RandomRotation(axis=np.array([0, 0, 1])),
-                                           dataset.RandomTranslation(),
-                                           dataset.RandomScale(0.8, 1.2),
-                                           dataset.RandomShear()])
-        train_dataset = dataset.ModelNet40Dataset(root=args.data_dir,
-                                                  shared_dict=shared_dict,
-                                                  split='train',
-                                                  voxel_size=args.voxel_size,
-                                                  transform=train_transpose)
-        val_dataset = dataset.ModelNet40Dataset(root=args.data_dir,
-                                                shared_dict={},
-                                                split='val',
-                                                voxel_size=args.voxel_size)
+        train_dataset = ModelNetDataLoader(root=args.data_dir,
+                                           shared_dict=shared_dict,
+                                           split='train',
+                                           voxel_size=args.voxel_size)
+        val_dataset = ModelNetDataLoader(root=args.data_dir,
+                                         shared_dict={},
+                                         split='val',
+                                         voxel_size=args.voxel_size)
 
     distributed_sampler = False
     train_sampler = None
