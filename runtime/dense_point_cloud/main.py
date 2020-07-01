@@ -1,5 +1,3 @@
-#first import dataset and open3d before import torch to avoid error in docker
-import dataset.dataset as dataset
 import torch.utils.data as data
 import os
 import os.path
@@ -8,7 +6,7 @@ import logging
 import sys
 import json
 import argparse
-import models.vgg16.vgg_mink as vgg
+import models.vgg16.vgg_3d as vgg
 import time
 import MinkowskiEngine as ME
 import random
@@ -17,13 +15,13 @@ from multiprocessing import Manager
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from dataset.modelNetDataLoader import ModelNetDataLoader
+from dataset.modelNetVoxelDataset import ModelNetVoxelDataset
 
 torch.manual_seed(0)
 import numpy as np
 np.random.seed(0)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+#torch.backends.cudnn.deterministic = True
+#torch.backends.cudnn.benchmark = False
 
 from apex import amp
 
@@ -47,7 +45,7 @@ parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     metavar='W', help='weight decay (default: 1e-4)')
-parser.add_argument('--print-freq', '-p', default=10, type=int,
+parser.add_argument('--print-freq', '-p', default=1, type=int,
                     metavar='N', help='print frequency (default: 10)')
 parser.add_argument('--fp16', action='store_true',
                     help='train model in fp16 precision')
@@ -65,7 +63,7 @@ parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
                     help='url used to set up distributed training')
 parser.add_argument('--dist-backend', default='gloo', type=str,
                     help='distributed backend')
-parser.add_argument('--voxel_size', type=float, default=0.05)
+parser.add_argument('--voxel_size', type=int, default=32)
 parser.add_argument('--max_iter', type=int, default=120000)
 parser.add_argument('--val_freq', type=int, default=1000)
 parser.add_argument('--dataset', default='modelnet40', type=str,
@@ -114,26 +112,23 @@ def main():
                                 world_size=args.world_size)
 
     # create model
-    module = importlib.import_module(args.module)
-    args.arch = module.arch()
-    model = module.full_model()
-    #model = vgg.vgg16_bn(out_channels=40)
+    #module = importlib.import_module(args.module)
+    #args.arch = module.arch()
+    #model = module.full_model()
+    model = vgg.vgg16_bn(in_channels=1, out_channels=40)
     print("model:", model)
 
     model = model.cuda()
-    #if not args.distributed:
-    #    model = torch.nn.DataParallel(model).cuda()
-    #else:
-    #    model.cuda()
-    #    model = torch.nn.parallel.DistributedDataParallel(model)
+    if not args.distributed:
+        model = torch.nn.DataParallel(model).cuda()
+    else:
+        model.cuda()
+        model = torch.nn.parallel.DistributedDataParallel(model)
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
 
     global model_parameters, master_parameters
-    #optimizer = torch.optim.Adam(model.parameters(), args.lr,
-    #                             betas=(0.9,0.999),
-    #                             weight_decay=args.weight_decay)
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                  momentum=args.momentum,
                                  weight_decay=args.weight_decay)
@@ -150,14 +145,16 @@ def main():
                                               split='val',
                                               voxel_size=args.voxel_size)
     else:
-        train_dataset = ModelNetDataLoader(root=args.data_dir,
-                                           shared_dict=shared_dict,
-                                           split='train',
-                                           voxel_size=args.voxel_size)
-        val_dataset = ModelNetDataLoader(root=args.data_dir,
+        train_dataset = ModelNetVoxelDataset(root=args.data_dir,
+                                             shared_dict=shared_dict,
+                                             split='train',
+                                             voxel_size=args.voxel_size,
+                                             data_augmentation=True)
+        val_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                            shared_dict={},
                                            split='val',
-                                           voxel_size=args.voxel_size)
+                                           voxel_size=args.voxel_size,
+                                           data_augmentation=False)
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
         val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
@@ -169,14 +166,12 @@ def main():
                                              batch_size=args.batch_size,
                                              shuffle=(train_sampler is None),
                                              num_workers=args.workers,
-                                             pin_memory=True, sampler=train_sampler,
-                                             collate_fn=dataset.collate_pointcloud_fn)
+                                             pin_memory=True, sampler=train_sampler)
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=args.eval_batch_size, 
                                              shuffle=False,
-                                             num_workers=args.workers, pin_memory=True,
-                                             sampler=val_sampler,
-                                             collate_fn=dataset.collate_pointcloud_fn)
+                                             pin_memory=True,
+                                             sampler=val_sampler)
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch) 
@@ -217,41 +212,31 @@ def train(train_loader, model, criterion, optimizer, epoch):
     end = time.time()
     epoch_start_time = time.time()
 
-    for i, data_dict in enumerate(train_loader):
+    for i, (points, target) in enumerate(train_loader):
         if args.num_minibatches is not None and i >= args.num_minibatches:
             break
-        coords = data_dict['coords']
-        feats = data_dict['feats']
-        labels = data_dict['labels']
-        sin = ME.SparseTensor(
-            feats, #coords[:, :3] * args.voxel_size,
-            coords.int(),
-            allow_duplicate_coords=True,  # for classification, it doesn't matter
-        )  #.to(device)
-        sin = sin.to('cuda')
-        labels = labels.to('cuda')
+        points = points.cuda(non_blocking=True)
+        target = target.cuda(non_blocking=True)
         torch.cuda.synchronize()
         data_time.update(time.time() - end)
 
-        sout = model(sin)
-        loss = criterion(sout.F, labels)
+        sout = model(points)
+        loss = criterion(sout, target)
         # measure accuracy and record loss
         if isinstance(sout, tuple):
-            prec1, prec5 = accuracy(sout[0].F, labels, topk=(1, 5))
+            prec1, prec5 = accuracy(sout[0], target, topk=(1, 5))
         else:
-            prec1, prec5 = accuracy(sout.F, labels, topk=(1, 5))
+            prec1, prec5 = accuracy(sout, target, topk=(1, 5))
         losses.update(loss.item(), args.batch_size)
         top1.update(prec1[0], args.batch_size)
         top5.update(prec5[0], args.batch_size)
 
-        #torch.cuda.synchronize() 
-        #forward_time.update(time() - st3)
-
-        #st4 = time()
         optimizer.zero_grad()
         with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
+
         optimizer.step()
+
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
@@ -268,7 +253,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Prec@1: {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Prec@5: {top5.val:.3f} ({top5.avg:.3f})'.format(
                    epoch, i, n, batch_time=batch_time,
-                   data_time=data_time, loss=losses, top1=top1, top5=top5,
+                   data_time=data_time,
+                   loss=losses, top1=top1, top5=top5,
                    memory=(float(torch.cuda.memory_allocated()) / 10**9),
                    cached_memory=(float(torch.cuda.memory_cached()) / 10**9)))
             import sys; sys.stdout.flush()
@@ -288,25 +274,17 @@ def validate(val_loader, model, criterion, epoch):
     epoch_start_time = time.time()
     with torch.no_grad():
         end = time.time()
-        for i, data_dict in enumerate(val_loader):
+        for i, (points, target) in enumerate(val_loader):
             if args.num_minibatches is not None and i >= args.num_minibatches:
                 break
-            coords = data_dict['coords'] 
-            feats = data_dict['feats'] 
-            labels = data_dict['labels']
-            sin = ME.SparseTensor(
-                feats, #coords[:, :3] * args.voxel_size,
-                coords.int(),
-                allow_duplicate_coords=True,  # for classification, it doesn't matter
-            )  #.to(device)
-            sin = sin.to('cuda')
-            labels = labels.to('cuda')
+            points = points.cuda(non_blocking=True) 
+            target = target.cuda(non_blocking=True)
             # compute output
-            sout = model(sin)
-            loss = criterion(sout.F, labels)
+            sout = model(points)
+            loss = criterion(sout, target)
 
             # measure accuracy and record loss
-            prec1, prec5 = accuracy(sout.F, labels, topk=(1, 5))
+            prec1, prec5 = accuracy(sout, target, topk=(1, 5))
             losses.update(loss.item(), args.eval_batch_size)
             top1.update(prec1[0], args.eval_batch_size)
             top5.update(prec5[0], args.eval_batch_size)
