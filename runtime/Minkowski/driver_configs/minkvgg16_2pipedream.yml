@@ -1,6 +1,6 @@
 'log_directory': '/data/panhe/pipedream/runtime/Minkowski/results/test_accuracy'
 'module': 'models.vgg16bn.gpus=2'
-'data_dir': '/data/panhe/pipedream/runtime/dataset/shapenetcore_partanno_segmentation_benchmark_v0'
+'data_dir': '/data/panhe/pipedream/runtime/Minkowski/ModelNet40'
 'config_file': 'models/vgg16bn/gpus=2/mp_conf.json'
 'container': 'spare_pipedream:latest'
 'machines': ['localhost:0', 'localhost:1']
@@ -8,8 +8,8 @@
 'learning_rate': 0.01
 'weight_decay': 0.0005
 'epochs': 90
-'print_frequency': 10
-'verbose_frequency': 10
+'print_frequency': 1
+'verbose_frequency': 1
 'compress_activations': False
 'compress_in_gpu': False
 'learning_rate_policy': 'polynomial'

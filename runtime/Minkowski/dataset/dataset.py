@@ -236,10 +236,9 @@ class ModelNet40Dataset(data.Dataset):
         coords = np.floor(xyz / self.voxel_size)
         inds = ME.utils.sparse_quantize(coords, return_index=True)
         coords = torch.from_numpy(coords)
-        coords = coords.type(torch.float) 
-        feats = torch.from_numpy(feats) 
+        coords = coords.type(torch.int) 
+        feats = torch.from_numpy(xyz) 
         feats = feats.type(torch.float) 
-        #print(type(coords), type(feats), coords.dtype, feats.dtype)
 
         return coords[inds], feats[inds], label
 
@@ -385,11 +384,6 @@ if __name__ == '__main__':
                                       split='train',
                                       voxel_size=0.05,
                                       transform=train_transpose)
-    #train_dataset = ShapeNetDataset(root="/extra_disk/keke/Minkowski/Dataset/shapenetcore_partanno_segmentation_benchmark_v0",
-    #                                shared_dict=shared_dict,
-    #                                classification=True,
-    #                                split='train',
-    #                                voxel_size=0.05)
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                         batch_size=32,
                                         shuffle=True,
