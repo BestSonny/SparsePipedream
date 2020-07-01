@@ -96,10 +96,8 @@ class ModelNetDataLoader(Dataset):
             cls = self.classes[self.datapath[index][0]]
             pts = np.loadtxt(fn[1], delimiter=',').astype(np.float32)
             if self.uniform:
-                point_set = farthest_point_sample(point_set, self.npoints)
-            else:
-                point_set = point_set[0:self.npoints,:]
-            point_set[:, 0:3] = pc_normalize(point_set[:, 0:3])
+                pts = farthest_point_sample(pts, self.npoints)
+            pts[:, 0:3] = pc_normalize(pts[:, 0:3])
             pts = pts[:, 0:3]
             if len(self.cache) < self.cache_size:
                 self.cache[index] = (pts, cls)
@@ -174,10 +172,11 @@ class Network(nn.Module):
 
 if __name__ == '__main__':
     import torch
+    from dataset import collate_pointcloud_fn
     manager = Manager()
     shared_dict = manager.dict()
     data = ModelNetDataLoader('/extra_disk/keke/pipeDream/dataSet/modelnet40_normal_resampled', 
-                              shared_dict=shared_dict, split='val', uniform=False, normal_channel=True)
+                              shared_dict=shared_dict, split='val', uniform=False, data_augmentation=True)
     DataLoader = torch.utils.data.DataLoader(data, batch_size=64, num_workers=4, shuffle=True, collate_fn=collate_pointcloud_fn)
     criterion = nn.CrossEntropyLoss()
     channels = [3, 64, 64, 40]
