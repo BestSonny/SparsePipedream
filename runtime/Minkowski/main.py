@@ -156,7 +156,7 @@ def main():
                                            voxel_size=args.voxel_size)
         val_dataset = ModelNetDataLoader(root=args.data_dir,
                                            shared_dict={},
-                                           split='val',
+                                           split='test',
                                            voxel_size=args.voxel_size)
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)

@@ -156,7 +156,7 @@ def main():
 
     # create fake input
     input_coords_size = [2000, 4]
-    input_feats_size = [2000, 3]
+    input_feats_size = [2000, 1]
     coords = torch.randint(100, tuple(input_coords_size), dtype=torch.int)
     feats = torch.zeros(tuple(input_feats_size), dtype=torch.float32)
     input = ME.SparseTensor(feats=feats, coords=coords)
@@ -276,7 +276,7 @@ def main():
                                            voxel_size=args.voxel_size)
         val_dataset = ModelNetDataLoader(root=args.data_dir,
                                          shared_dict={},
-                                         split='val',
+                                         split='test',
                                          voxel_size=args.voxel_size)
 
     distributed_sampler = False

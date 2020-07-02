@@ -83,7 +83,7 @@ class ModelNetDataLoader(Dataset):
         self.data_time = AverageMeter()
         self.data_agu_time = AverageMeter()
         self.voxel_time = AverageMeter()
-        self.npoints = 4000
+        #self.npoints = 4000
 
     def __len__(self):
         return len(self.datapath)
@@ -103,8 +103,9 @@ class ModelNetDataLoader(Dataset):
                 self.cache[index] = (pts, cls)
 
         start = time.time()
-        choice = np.random.choice(len(pts), self.npoints, replace=True)
-        point_set = pts[choice, :]
+        #choice = np.random.choice(len(pts), self.npoints, replace=True)
+        #point_set = pts[choice, :]
+        point_set = pts
 
         point_set = point_set - np.expand_dims(np.mean(point_set, axis = 0), 0) # center
         dist = np.max(np.sqrt(np.sum(point_set ** 2, axis = 1)) ,0)
@@ -122,9 +123,12 @@ class ModelNetDataLoader(Dataset):
 
         quantized_coords = np.floor(point_set / self.voxel_size)
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
+        feats = np.ones((len(quantized_coords[inds]), 1))
+        feats = torch.from_numpy(feats)
+        feats = feats.type(torch.float)
         self.voxel_time.update(time.time() - start)
 
-        return quantized_coords[inds], quantized_coords[inds], cls #point_set, cls
+        return quantized_coords[inds], feats, cls 
 
     def __getitem__(self, index):
         return self._get_item(index)
@@ -179,7 +183,7 @@ if __name__ == '__main__':
                               shared_dict=shared_dict, split='val', uniform=False, data_augmentation=True)
     DataLoader = torch.utils.data.DataLoader(data, batch_size=64, num_workers=4, shuffle=True, collate_fn=collate_pointcloud_fn)
     criterion = nn.CrossEntropyLoss()
-    channels = [3, 64, 64, 40]
+    channels = [1, 64, 64, 40]
     net = Network(channels, D=3)
     net = net.to('cuda')
     optimizer = torch.optim.SGD(net.parameters(), lr=1e-1)

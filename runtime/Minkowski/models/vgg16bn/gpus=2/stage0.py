@@ -6,7 +6,7 @@ import torch.nn as nn
 class Stage0(torch.nn.Module):
     def __init__(self):
         super(Stage0, self).__init__()
-        self.layer2 = ME.MinkowskiConvolution(in_channels=3, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=True, dimension=3)
+        self.layer2 = ME.MinkowskiConvolution(in_channels=1, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=True, dimension=3)
         self.layer3 = ME.MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         self.layer4 = ME.MinkowskiReLU()
         self.layer5 = ME.MinkowskiConvolution(in_channels=64, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=True, dimension=3)

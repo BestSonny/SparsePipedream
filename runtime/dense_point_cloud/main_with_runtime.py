@@ -268,7 +268,7 @@ def main():
                                              data_augmentation=True)
         val_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                            shared_dict={},
-                                           split='val',
+                                           split='test',
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)
 
