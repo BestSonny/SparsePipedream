@@ -66,8 +66,8 @@ class StageRuntime:
         self.verbose_freq = verbose_freq
         self.forward_only = False
 
-        self.forward_stats = runtime_utilities.RuntimeStats(forward=True)
-        self.backward_stats = runtime_utilities.RuntimeStats(forward=False)
+        self.forward_stats = runtime_utilities.RuntimeStats(rank, forward=True)
+        self.backward_stats = runtime_utilities.RuntimeStats(rank, forward=False)
 
         # Enable recomputation to prevent the need to save activations
         # computed from the forward pass for the backward pass.
