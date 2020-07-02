@@ -8,6 +8,10 @@ import torch
 from torch.nn import Module
 import torch.distributed as dist
 import sys
+import os
+CPU_COUNT = os.cpu_count()
+if 'OMP_NUM_THREADS' in os.environ:
+    CPU_COUNT = int(os.environ['OMP_NUM_THREADS']//4)
 
 import MinkowskiEngine as ME
 import communication_sparse as comm_sparse
@@ -420,7 +424,8 @@ class StageRuntimeSparse:
                 coords = input['coords']
                 feats = input['feats']
                 labels = input['labels']
-                sin = ME.SparseTensor(feats=feats, coords=coords.int())
+                coords_manager = ME.CoordsManager(D=coords.size(1) - 1, num_threads=CPU_COUNT)
+                sin = ME.SparseTensor(feats=feats, coords=coords.int(), coords_manager=coords_manager)
                 device = torch.cuda.current_device()
                 self.tensors[-1]["input0"] = sin.to(device)
                 self.tensors[-1]["target"] = labels.cuda(non_blocking=True)
