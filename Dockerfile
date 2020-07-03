@@ -36,7 +36,10 @@ RUN git clone https://github.com/BestSonny/MinkowskiEngineM.git && \
     NCCL_LIB_DIR="/usr/lib/" \
     python setup.py install --force_cuda
 
-RUN pip install kaolin
+WORKDIR /workspace
+RUN git clone https://github.com/BestSonny/kaolin.git && \
+    pip install -r requirements.txt
+    python setup.py install
 
 # # Reset default working directory
 WORKDIR /workspace
