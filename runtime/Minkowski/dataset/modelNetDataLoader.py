@@ -107,25 +107,19 @@ class ModelNetDataLoader(Dataset):
         #point_set = pts[choice, :]
         point_set = pts
 
-        point_set = point_set - np.expand_dims(np.mean(point_set, axis = 0), 0) # center
-        dist = np.max(np.sqrt(np.sum(point_set ** 2, axis = 1)) ,0)
-        point_set = point_set / dist  # scale
-
         if self.data_augmentation:
             theta = np.random.uniform(0, np.pi*2)
             rotation_matrix = np.array([[np.cos(theta), -np.sin(theta)] ,[np.sin(theta), np.cos(theta)]])
             point_set[: ,[0 ,2]] = point_set[: ,[0 ,2]].dot(rotation_matrix) # random rotation
-            point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
+            point_set += np.random.normal(0, 0.01, size=point_set.shape) # random jitter
 
-        point_set = torch.from_numpy(point_set)
-        cls = torch.from_numpy(np.array([cls]).astype(np.int64))
+        point_set = torch.from_numpy(point_set.astype(np.float32))
+        cls = torch.from_numpy(np.array([cls]).astype(np.int32))
         self.data_agu_time.update(time.time() - start)
 
-        quantized_coords = np.floor(point_set / self.voxel_size)
+        quantized_coords = point_set.div(self.voxel_size).floor()
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
-        feats = np.ones((len(quantized_coords[inds]), 1))
-        feats = torch.from_numpy(feats)
-        feats = feats.type(torch.float)
+        feats = quantized_coords[inds].fill(1)
         self.voxel_time.update(time.time() - start)
 
         return quantized_coords[inds], feats, cls 
