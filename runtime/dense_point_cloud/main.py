@@ -8,27 +8,28 @@ import json
 import argparse
 import models.vgg16.vgg_3d as vgg
 import time
-import MinkowskiEngine as ME
+
 import random
 import importlib
-from multiprocessing import Manager
 import torch
 import torch.optim as optim
 import torch.nn as nn
 from dataset.modelNetVoxelDataset import ModelNetVoxelDataset
+from dataset.modelnet import ModelNetVoxels
+from multiprocessing import Manager
 
 torch.manual_seed(0)
 import numpy as np
 np.random.seed(0)
-#torch.backends.cudnn.deterministic = True
-#torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 from apex import amp
 
 parser = argparse.ArgumentParser(description='PyTorch Minkowski Training')
 parser.add_argument('--data_dir', type=str, required=True, help="dataset path")
-parser.add_argument('--module', '-m', required=True,
-                    help='name of module that contains full model definition')
+# parser.add_argument('--module', '-m', required=True,
+#                     help='name of module that contains full model definition')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--epochs', default=90, type=int, metavar='N',
@@ -67,7 +68,7 @@ parser.add_argument('--voxel_size', type=int, default=32)
 parser.add_argument('--npoints', type=int, default=2048)
 parser.add_argument('--max_iter', type=int, default=120000)
 parser.add_argument('--val_freq', type=int, default=1000)
-parser.add_argument('--dataset', default='modelnet40', type=str,
+parser.add_argument('--dataset', default='kaolinmodelnetvoxeldataset', type=str,
                     help='dataset name, modelnet40 or shapenet')
 
 best_prec1 = 0
@@ -116,23 +117,23 @@ def main():
     #module = importlib.import_module(args.module)
     #args.arch = module.arch()
     #model = module.full_model()
-    model = vgg.vgg16_bn(in_channels=1, out_channels=40)
-    print("model:", model)
+    # model = vgg.vgg16_bn(in_channels=1, out_channels=40)
+    # print("model:", model)
 
-    model = model.cuda()
-    if not args.distributed:
-        model = torch.nn.DataParallel(model).cuda()
-    else:
-        model.cuda()
-        model = torch.nn.parallel.DistributedDataParallel(model)
+    # model = model.cuda()
+    # if not args.distributed:
+    #     model = torch.nn.DataParallel(model).cuda()
+    # else:
+    #     model.cuda()
+    #     model = torch.nn.parallel.DistributedDataParallel(model)
 
-    # define loss function (criterion) and optimizer
-    criterion = nn.CrossEntropyLoss().cuda()
+    # # define loss function (criterion) and optimizer
+    # criterion = nn.CrossEntropyLoss().cuda()
 
-    global model_parameters, master_parameters
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                 momentum=args.momentum,
-                                 weight_decay=args.weight_decay)
+    # global model_parameters, master_parameters
+    # optimizer = torch.optim.SGD(model.parameters(), args.lr,
+    #                              momentum=args.momentum,
+    #                              weight_decay=args.weight_decay)
     # Data loading code
     manager = Manager()
     shared_dict = manager.dict() #create cache for storing data
@@ -145,7 +146,7 @@ def main():
                                               classification=True,
                                               split='val',
                                               voxel_size=args.voxel_size)
-    else:
+    elif args.dataset == 'modelnetvoxeldataset':
         train_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                              shared_dict=shared_dict,
                                              npoints=args.npoints,
@@ -158,6 +159,10 @@ def main():
                                            split='test',
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)
+    elif args.dataset == 'kaolinmodelnetvoxeldataset':
+        train_dataset = ModelNetVoxels(basedir=args.data_dir, split='train')
+        val_dataset = ModelNetVoxels(basedir=args.data_dir, split='test')
+
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
         val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
