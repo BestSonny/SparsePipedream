@@ -1,7 +1,5 @@
 import os
 import os.path
-# Need to import open3d in dataset before torch in order to run in docker
-import dataset.dataset as dataset
 import torch
 import numpy as np
 import logging
@@ -9,7 +7,6 @@ import sys
 import json
 import argparse
 import torch.optim as optim
-import MinkowskiEngine as ME
 import random
 
 from collections import OrderedDict
@@ -26,16 +23,13 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 from multiprocessing import Manager
-from dataset.modelNetDataLoader import ModelNetDataLoader
+from dataset.modelNetVoxelDataset import ModelNetVoxelDataset
 
-import communication_sparse as comm_sparse
-import runtime_sparse
 
 sys.path.append("../")
-import adam
 import sgd
+import runtime
 
-#torch.autograd.set_detect_anomaly(True)
 torch.manual_seed(0)
 import numpy as np
 np.random.seed(0)
@@ -107,7 +101,8 @@ parser.add_argument('--recompute', action='store_true',
 # by not applying updates every minibatch.
 parser.add_argument('--macrobatch', action='store_true',
                     help='Macrobatch updates to save memory')
-parser.add_argument('--voxel_size', type=float, default=0.05)
+parser.add_argument('--voxel_size', type=int, default=32)
+parser.add_argument('--npoints', type=int, default=2048)
 parser.add_argument('--dataset', default='modelnet40', type=str,
                     help='dataset name, modelnet40 or shapenet')
 
@@ -154,37 +149,35 @@ def main():
     args.arch = module.arch()
     model = module.model(criterion)
 
-    # create fake input
-    input_coords_size = [2000, 4]
-    input_feats_size = [2000, 1]
-    coords = torch.randint(100, tuple(input_coords_size), dtype=torch.int)
-    feats = torch.zeros(tuple(input_feats_size), dtype=torch.float32)
-    input = ME.SparseTensor(feats=feats, coords=coords)
-    input_size = comm_sparse.createTensorSize(input)
-    input_dtype = comm_sparse.createTensorDtype(input)
-
-    training_tensor_shapes = {"input0": input_size, "target": [args.batch_size]}
-    dtypes = {"input0": input_dtype, "target": torch.int64}
+    # determine shapes of all tensors in passed-in model
+    input_size = [args.batch_size, 1, args.voxel_size, args.voxel_size, args.voxel_size]
+    target_size = [args.batch_size]
+    print("input_size:", input_size, "target_size:", target_size)
+    training_tensor_shapes = {"input0": input_size, "target": target_size}
+    dtypes = {"input0": torch.int64, "target": torch.int64}
     inputs_module_destinations = {"input": 0}
     target_tensor_names = {"target"}
-    fake_inputs = {"input0" : input}
     for (stage, inputs, outputs) in model[:-1]:  # Skip last layer (loss).
         input_tensors = []
         for input in inputs:
-            input_tensors.append(fake_inputs[input])
+            input_tensor = torch.zeros(tuple(training_tensor_shapes[input]),
+                                       dtype=torch.float32)
+            input_tensors.append(input_tensor)
         with torch.no_grad():
             output_tensors = stage(*tuple(input_tensors))
         if not type(output_tensors) is tuple:
             output_tensors = [output_tensors]
         for output, output_tensor in zip(outputs,
                                          list(output_tensors)):
-            training_tensor_shapes[output] = comm_sparse.createTensorSize(output_tensor) #list(output_tensor.size())
-            dtypes[output] = comm_sparse.createTensorDtype(output_tensor) #output_tensor.dtype
-            fake_inputs[output] = output_tensor
+            training_tensor_shapes[output] = list(output_tensor.size())
+            dtypes[output] = output_tensor.dtype
 
     eval_tensor_shapes = {}
     for key in training_tensor_shapes:
-        eval_tensor_shapes[key] = training_tensor_shapes[key]
+        eval_tensor_shapes[key] = tuple(
+            [args.eval_batch_size] + training_tensor_shapes[key][1:])
+        training_tensor_shapes[key] = tuple(
+            training_tensor_shapes[key])
 
     configuration_maps = {
         'module_to_stage_map': None,
@@ -199,7 +192,7 @@ def main():
             int(k): v for (k, v) in configuration_maps['stage_to_rank_map'].items()}
         configuration_maps['stage_to_depth_map'] = json_config_file.get("stage_to_depth_map", None)
 
-    r = runtime_sparse.StageRuntimeSparse(
+    r = runtime.StageRuntime(
         model=model, distributed_backend=args.distributed_backend,
         fp16=args.fp16, loss_scale=args.loss_scale,
         training_tensor_shapes=training_tensor_shapes,
@@ -212,7 +205,7 @@ def main():
         local_rank=args.local_rank,
         num_ranks_in_server=args.num_ranks_in_server,
         verbose_freq=args.verbose_frequency,
-        model_type=runtime_sparse.MINKOWSKI,
+        model_type=runtime.IMAGE_CLASSIFICATION,
         enable_recompute=args.recompute)
 
     # stage needed to determine if current stage is the first stage
@@ -248,7 +241,6 @@ def main():
                                           r.model_parameters, args.loss_scale,
                                           num_versions=num_versions,
                                           lr=args.lr,
-                                          #betas=(0.9, 0.999),
                                           momentum=args.momentum,
                                           weight_decay=args.weight_decay,
                                           verbose_freq=args.verbose_frequency,
@@ -267,19 +259,21 @@ def main():
         if args.synthetic_data:
             train_dataset = SyntheticDataset((3, 224, 224), len(train_dataset))
         val_dataset = ShapeNetDataset(root=args.data_dir,classification=True,
-                                      split='test',
+                                      split='val',
                                       voxel_size=args.voxel_size)
     else:
-        train_dataset = ModelNetDataLoader(root=args.data_dir,
-                                           shared_dict=shared_dict,
-                                           split='train',
+        train_dataset = ModelNetVoxelDataset(root=args.data_dir,
+                                             shared_dict=shared_dict,
+                                             npoints=args.npoints,
+                                             split='train',
+                                             voxel_size=args.voxel_size,
+                                             data_augmentation=True)
+        val_dataset = ModelNetVoxelDataset(root=args.data_dir,
+                                           shared_dict={},
+                                           npoints=args.npoints,
+                                           split='test',
                                            voxel_size=args.voxel_size,
-                                           data_augmentation=True)
-        val_dataset = ModelNetDataLoader(root=args.data_dir,
-                                         shared_dict={},
-                                         split='test',
-                                         voxel_size=args.voxel_size,
-                                         data_augmentation=False)
+                                           data_augmentation=False)
 
     distributed_sampler = False
     train_sampler = None
@@ -300,14 +294,14 @@ def main():
                                         shuffle=(train_sampler is None), #True,
                                         num_workers=int(args.workers),
                                         pin_memory=True,
-                                        sampler=train_sampler,
-                                        collate_fn=dataset.collate_pointcloud_fn)
+                                        sampler=train_sampler)
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=args.batch_size,
                                              shuffle=False,
+                                             #To save val dataset in memory, no num_workers
+                                             #num_workers=int(args.workers),
                                              pin_memory=True,
-                                             sampler=val_sampler,
-                                             collate_fn=dataset.collate_pointcloud_fn)
+                                             sampler=val_sampler)
     # if checkpoint is loaded, start by running validation
     if args.resume:
         assert args.start_epoch > 0
@@ -384,10 +378,10 @@ def train(train_loader, r, optimizer, epoch):
         if is_last_stage():
             # measure accuracy and record loss
             output, target, loss = r.output, r.target, r.loss
-            prec1, prec5 = accuracy(output.F, target, topk=(1, 5))
-            losses.update(loss.item(), args.batch_size) # output.F.size(0))
-            top1.update(prec1[0], args.batch_size) #output.F.size(0))
-            top5.update(prec5[0], args.batch_size) #output.F.size(0))
+            prec1, prec5 = accuracy(output, target, topk=(1, 5))
+            losses.update(loss.item(), args.batch_size) 
+            top1.update(prec1[0], args.batch_size) 
+            top5.update(prec5[0], args.batch_size) 
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -437,7 +431,7 @@ def train(train_loader, r, optimizer, epoch):
     # wait for all helper threads to complete
     r.wait()
 
-    print("Training epoch %d: %.3f seconds, epoch start time: %.3f, epoch end time: %.3f" % (epoch, time.time() - epoch_start_time, epoch_start_time, time.time()))
+    print("Rank: %d, Training epoch %d: %.3f seconds, epoch start time: %.3f, epoch end time: %.3f" % (args.rank, epoch, time.time() - epoch_start_time, epoch_start_time, time.time()))
     #print("Epoch start time: %.3f, epoch end time: %.3f" % (epoch_start_time, time.time()))
 
 def validate(val_loader, r, epoch):
@@ -479,7 +473,7 @@ def validate(val_loader, r, epoch):
                 output, target, loss = r.output, r.target, r.loss
 
                 # measure accuracy and record loss
-                prec1, prec5 = accuracy(output.F, target, topk=(1, 5))
+                prec1, prec5 = accuracy(output, target, topk=(1, 5))
                 losses.update(loss.item(), args.batch_size)
                 top1.update(prec1[0], args.batch_size)
                 top5.update(prec5[0], args.batch_size)

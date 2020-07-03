@@ -117,7 +117,7 @@ def main():
     module = importlib.import_module(args.module)
     args.arch = module.arch()
     model = module.full_model()
-    #model = vgg.vgg16_bn(out_channels=40)
+    #model = vgg.vgg16_bn(in_channels=1, out_channels=40)
     print("model:", model)
 
     model = model.cuda()
@@ -156,7 +156,7 @@ def main():
                                            voxel_size=args.voxel_size)
         val_dataset = ModelNetDataLoader(root=args.data_dir,
                                            shared_dict={},
-                                           split='val',
+                                           split='test',
                                            voxel_size=args.voxel_size)
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
@@ -174,7 +174,9 @@ def main():
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=args.eval_batch_size, 
                                              shuffle=False,
-                                             num_workers=args.workers, pin_memory=True,
+                                             #No worker to save val data in memory
+                                             #num_workers=args.workers, 
+                                             pin_memory=True,
                                              sampler=val_sampler,
                                              collate_fn=dataset.collate_pointcloud_fn)
     for epoch in range(args.start_epoch, args.epochs):
@@ -236,10 +238,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         sout = model(sin)
         loss = criterion(sout.F, labels)
         # measure accuracy and record loss
-        if isinstance(sout, tuple):
-            prec1, prec5 = accuracy(sout[0].F, labels, topk=(1, 5))
-        else:
-            prec1, prec5 = accuracy(sout.F, labels, topk=(1, 5))
+        prec1, prec5 = accuracy(sout.F, labels, topk=(1, 5))
         losses.update(loss.item(), args.batch_size)
         top1.update(prec1[0], args.batch_size)
         top5.update(prec5[0], args.batch_size)

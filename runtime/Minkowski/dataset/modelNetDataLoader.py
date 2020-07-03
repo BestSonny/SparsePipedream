@@ -81,7 +81,7 @@ class ModelNetDataLoader(Dataset):
         self.data_time = AverageMeter()
         self.data_agu_time = AverageMeter()
         self.voxel_time = AverageMeter()
-        self.npoints = 4000
+        #self.npoints = 4000
 
     def __len__(self):
         return len(self.datapath)
@@ -101,28 +101,28 @@ class ModelNetDataLoader(Dataset):
                 self.cache[index] = (pts, cls)
 
         start = time.time()
-        choice = np.random.choice(len(pts), self.npoints, replace=True)
-        point_set = pts[choice, :]
-
-        point_set = point_set - np.expand_dims(np.mean(point_set, axis = 0), 0) # center
-        dist = np.max(np.sqrt(np.sum(point_set ** 2, axis = 1)) ,0)
-        point_set = point_set / dist  # scale
+        #choice = np.random.choice(len(pts), self.npoints, replace=True)
+        #point_set = pts[choice, :]
+        point_set = pts
 
         if self.data_augmentation:
             theta = np.random.uniform(0, np.pi*2)
             rotation_matrix = np.array([[np.cos(theta), -np.sin(theta)] ,[np.sin(theta), np.cos(theta)]])
             point_set[: ,[0 ,2]] = point_set[: ,[0 ,2]].dot(rotation_matrix) # random rotation
-            point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
+            point_set += np.random.normal(0, 0.01, size=point_set.shape) # random jitter
 
-        point_set = torch.from_numpy(point_set)
+        point_set = torch.from_numpy(point_set.astype(np.float32))
         cls = torch.from_numpy(np.array([cls]).astype(np.int64))
         self.data_agu_time.update(time.time() - start)
 
-        quantized_coords = np.floor(point_set / self.voxel_size)
+        quantized_coords = point_set.div(self.voxel_size).floor()
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
+        feats = np.empty([quantized_coords[inds].size(0), 1])
+        feats.fill(1)
+        feats = torch.from_numpy(feats.astype(np.float32))
         self.voxel_time.update(time.time() - start)
 
-        return quantized_coords[inds], quantized_coords[inds], cls #point_set, cls
+        return quantized_coords[inds], feats, cls 
 
     def __getitem__(self, index):
         return self._get_item(index)
@@ -177,7 +177,7 @@ if __name__ == '__main__':
                               shared_dict=shared_dict, split='val', uniform=False, data_augmentation=True)
     DataLoader = torch.utils.data.DataLoader(data, batch_size=64, num_workers=4, shuffle=True, collate_fn=collate_pointcloud_fn)
     criterion = nn.CrossEntropyLoss()
-    channels = [3, 64, 64, 40]
+    channels = [1, 64, 64, 40]
     net = Network(channels, D=3)
     net = net.to('cuda')
     optimizer = torch.optim.SGD(net.parameters(), lr=1e-1)
