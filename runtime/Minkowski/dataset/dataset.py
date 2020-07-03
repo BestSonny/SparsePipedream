@@ -262,13 +262,13 @@ class ModelNetMinkowski(object):
         data = dict()
         attributes = dict()
         name = self.names[index]
-        point_clouds = self.cache_transforms[self.resolution](name)
+        point_clouds = self.cache_transforms(name)
         quantized_coords = point_clouds.div(self.voxel_size).floor()
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
         feats = np.empty([quantized_coords[inds].size(0), 1])
         feats.fill(1)
         feats = torch.from_numpy(feats.astype(np.float32))
-        category = torch.tensor(self.cat_idxs[index], dtype=torch.long, device=self.device)
+        category = torch.tensor([self.cat_idxs[index]], dtype=torch.long, device=self.device)
         return quantized_coords[inds], feats, category
         
 
