@@ -36,8 +36,8 @@ import adam
 import sgd
 
 #torch.autograd.set_detect_anomaly(True)
-# torch.manual_seed(0)
-# import numpy as np
+torch.manual_seed(0)
+import numpy as np
 np.random.seed(0)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
@@ -156,7 +156,7 @@ def main():
 
     # create fake input
     input_coords_size = [2000, 4]
-    input_feats_size = [2000, 3]
+    input_feats_size = [2000, 1]
     coords = torch.randint(100, tuple(input_coords_size), dtype=torch.int)
     feats = torch.zeros(tuple(input_feats_size), dtype=torch.float32)
     input = ME.SparseTensor(feats=feats, coords=coords)
@@ -273,11 +273,13 @@ def main():
         train_dataset = ModelNetDataLoader(root=args.data_dir,
                                            shared_dict=shared_dict,
                                            split='train',
-                                           voxel_size=args.voxel_size)
+                                           voxel_size=args.voxel_size,
+                                           data_augmentation=True)
         val_dataset = ModelNetDataLoader(root=args.data_dir,
                                          shared_dict={},
-                                         split='val',
-                                         voxel_size=args.voxel_size)
+                                         split='test',
+                                         voxel_size=args.voxel_size,
+                                         data_augmentation=False)
 
     distributed_sampler = False
     train_sampler = None
@@ -303,7 +305,6 @@ def main():
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=args.batch_size,
                                              shuffle=False,
-                                             num_workers=int(args.workers),
                                              pin_memory=True,
                                              sampler=val_sampler,
                                              collate_fn=dataset.collate_pointcloud_fn)
@@ -331,13 +332,13 @@ def main():
 
             should_save_checkpoint = args.checkpoint_dir_not_nfs or r.rank_in_stage == 0
             if args.checkpoint_dir and should_save_checkpoint:
-               save_checkpoint({
-                   'epoch': epoch + 1,
-                   'arch': args.arch,
-                   'state_dict': r.state_dict(),
-                   'best_prec1': best_prec1,
-                   'optimizer' : optimizer.state_dict(),
-               }, args.checkpoint_dir, r.stage)
+                save_checkpoint({
+                    'epoch': epoch + 1,
+                    'arch': args.arch,
+                    'state_dict': r.state_dict(),
+                    'best_prec1': best_prec1,
+                    'optimizer' : optimizer.state_dict(),
+                }, args.checkpoint_dir, r.stage)
             print("Epoch: %d, best_prec1: %f" % (epoch, best_prec1))
     end_run = time.time()
     print("Total running time: %.3f" % (end_run - start_run))

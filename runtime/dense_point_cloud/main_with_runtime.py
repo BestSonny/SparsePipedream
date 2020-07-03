@@ -33,8 +33,8 @@ import runtime
 torch.manual_seed(0)
 import numpy as np
 np.random.seed(0)
-#torch.backends.cudnn.deterministic = True
-#torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 parser = argparse.ArgumentParser(description='PyTorch Pipeline Minkowski Training')
 parser.add_argument('--data_dir', type=str, required=True, help="dataset path")
@@ -268,7 +268,7 @@ def main():
                                              data_augmentation=True)
         val_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                            shared_dict={},
-                                           split='val',
+                                           split='test',
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)
 
@@ -322,14 +322,14 @@ def main():
             best_prec1 = max(prec1, best_prec1)
 
             should_save_checkpoint = args.checkpoint_dir_not_nfs or r.rank_in_stage == 0
-            #if args.checkpoint_dir and should_save_checkpoint:
-            #    save_checkpoint({
-            #        'epoch': epoch + 1,
-            #        'arch': args.arch,
-            #        'state_dict': r.state_dict(),
-            #        'best_prec1': best_prec1,
-            #        'optimizer' : optimizer.state_dict(),
-            #    }, args.checkpoint_dir, r.stage)
+            if args.checkpoint_dir and should_save_checkpoint:
+                save_checkpoint({
+                    'epoch': epoch + 1,
+                    'arch': args.arch,
+                    'state_dict': r.state_dict(),
+                    'best_prec1': best_prec1,
+                    'optimizer' : optimizer.state_dict(),
+                }, args.checkpoint_dir, r.stage)
             print("Epoch: %d, best_prec1: %f" % (epoch, best_prec1))
     end_run = time.time()
     print("Total running time: %.3f" % (end_run - start_run))

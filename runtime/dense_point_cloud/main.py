@@ -152,7 +152,7 @@ def main():
                                              data_augmentation=True)
         val_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                            shared_dict={},
-                                           split='val',
+                                           split='test',
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)
     if args.distributed:
@@ -223,10 +223,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         sout = model(points)
         loss = criterion(sout, target)
         # measure accuracy and record loss
-        if isinstance(sout, tuple):
-            prec1, prec5 = accuracy(sout[0], target, topk=(1, 5))
-        else:
-            prec1, prec5 = accuracy(sout, target, topk=(1, 5))
+        prec1, prec5 = accuracy(sout, target, topk=(1, 5))
         losses.update(loss.item(), args.batch_size)
         top1.update(prec1[0], args.batch_size)
         top5.update(prec5[0], args.batch_size)

@@ -55,7 +55,7 @@ class ModelNetVoxelDataset(Dataset):
     def __init__(self,
                  root,
                  shared_dict={},
-                 npoints=2500,
+                 npoints=2048,
                  split='train',
                  voxel_size=32,
                  data_augmentation=True,
