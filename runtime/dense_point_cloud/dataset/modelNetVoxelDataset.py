@@ -82,7 +82,7 @@ class ModelNetVoxelDataset(Dataset):
         self.datapath = [(shape_names[i], 
                          os.path.join(self.root, shape_names[i], shape_ids[split][i]) + '.txt') for i
                          in range(len(shape_ids[split]))]
-        print('The size of %s data is %d'%(split,len(self.datapath)))
+        print('The size of %s data is %d, npoints: %d' %(split, len(self.datapath), npoints))
 
     def __getitem__(self, index):
         if index in self.cache:
@@ -99,14 +99,11 @@ class ModelNetVoxelDataset(Dataset):
 
         choice = np.random.choice(len(pts), self.npoints, replace=True)
         point_set = pts[choice, :]
-        point_set = point_set - np.expand_dims(np.mean(point_set, axis = 0), 0) # center
-        dist = np.max(np.sqrt(np.sum(point_set ** 2, axis = 1)) ,0)
-        point_set = point_set / dist
         if self.data_augmentation:
-            theta = np.random.uniform(0,np.pi*2)
-            rotation_matrix = np.array([[np.cos(theta), -np.sin(theta)],[np.sin(theta), np.cos(theta)]])
-            point_set[:,[0,2]] = point_set[:,[0,2]].dot(rotation_matrix) # random rotation
-            point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
+            theta = np.random.uniform(0, np.pi*2)
+            rotation_matrix = np.array([[np.cos(theta), -np.sin(theta)] ,[np.sin(theta), np.cos(theta)]])
+            point_set[: ,[0 ,2]] = point_set[: ,[0 ,2]].dot(rotation_matrix) # random rotation
+            point_set += np.random.normal(0, 0.01, size=point_set.shape) # random jitter
 
         # voxelize point_set
         # scale coordinate to [0,num_voxel)

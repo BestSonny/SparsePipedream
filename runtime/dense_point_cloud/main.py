@@ -64,6 +64,7 @@ parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
 parser.add_argument('--dist-backend', default='gloo', type=str,
                     help='distributed backend')
 parser.add_argument('--voxel_size', type=int, default=32)
+parser.add_argument('--npoints', type=int, default=2048)
 parser.add_argument('--max_iter', type=int, default=120000)
 parser.add_argument('--val_freq', type=int, default=1000)
 parser.add_argument('--dataset', default='modelnet40', type=str,
@@ -147,11 +148,13 @@ def main():
     else:
         train_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                              shared_dict=shared_dict,
+                                             npoints=args.npoints,
                                              split='train',
                                              voxel_size=args.voxel_size,
                                              data_augmentation=True)
         val_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                            shared_dict={},
+                                           npoints=args.npoints,
                                            split='test',
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)

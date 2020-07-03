@@ -40,6 +40,7 @@ LR_WARMUP = 'lr_warmup'
 SYNTHETIC_DATA = 'synthetic_data'
 RECOMPUTE = 'recompute'
 MACROBATCH = 'macrobatch'
+NPOINTS = 'npoints'
 
 
 '''
@@ -278,6 +279,9 @@ if __name__ == "__main__":
 
     if MACROBATCH in configurations and configurations[MACROBATCH]:
         runtime_cmd_list.append('--macrobatch')
+
+    if NPOINTS in configurations:
+        runtime_cmd_list.append('--npoints %d' % configurations[NPOINTS])
 
     common_runtime_cmd = " ".join(runtime_cmd_list)
 

@@ -114,12 +114,14 @@ class ModelNetDataLoader(Dataset):
             point_set += np.random.normal(0, 0.01, size=point_set.shape) # random jitter
 
         point_set = torch.from_numpy(point_set.astype(np.float32))
-        cls = torch.from_numpy(np.array([cls]).astype(np.int32))
+        cls = torch.from_numpy(np.array([cls]).astype(np.int64))
         self.data_agu_time.update(time.time() - start)
 
         quantized_coords = point_set.div(self.voxel_size).floor()
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
-        feats = quantized_coords[inds].fill(1)
+        feats = np.empty([quantized_coords[inds].size(0), 1])
+        feats.fill(1)
+        feats = torch.from_numpy(feats.astype(np.float32))
         self.voxel_time.update(time.time() - start)
 
         return quantized_coords[inds], feats, cls 

@@ -102,6 +102,7 @@ parser.add_argument('--recompute', action='store_true',
 parser.add_argument('--macrobatch', action='store_true',
                     help='Macrobatch updates to save memory')
 parser.add_argument('--voxel_size', type=int, default=32)
+parser.add_argument('--npoints', type=int, default=2048)
 parser.add_argument('--dataset', default='modelnet40', type=str,
                     help='dataset name, modelnet40 or shapenet')
 
@@ -263,11 +264,13 @@ def main():
     else:
         train_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                              shared_dict=shared_dict,
+                                             npoints=args.npoints,
                                              split='train',
                                              voxel_size=args.voxel_size,
                                              data_augmentation=True)
         val_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                            shared_dict={},
+                                           npoints=args.npoints,
                                            split='test',
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)
@@ -319,10 +322,11 @@ def main():
             if r.stage != r.num_stages - 1: prec1 = 0
 
             # remember best prec@1 and save checkpoint
+            is_best = prec1 > best_prec1
             best_prec1 = max(prec1, best_prec1)
 
             should_save_checkpoint = args.checkpoint_dir_not_nfs or r.rank_in_stage == 0
-            if args.checkpoint_dir and should_save_checkpoint:
+            if args.checkpoint_dir and should_save_checkpoint and is_best:
                 save_checkpoint({
                     'epoch': epoch + 1,
                     'arch': args.arch,
