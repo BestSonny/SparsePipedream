@@ -47,13 +47,12 @@ class ModelNet(object):
 
     def __getitem__(self, index):
         """Returns the item at index idx. """
-        category = torch.tensor(self.cat_idxs[index], dtype=torch.long, device=self.device)
         data = TriangleMesh.from_off(self.filepaths[index])
         data.to(self.device)
         if self.transform:
             data = self.transform(data)
 
-        return data, category
+        return data
 
 class ModelNetVoxels(object):
     def __init__(self, basedir: str, cache_dir: Optional[str] = None, 
@@ -95,7 +94,7 @@ class ModelNetVoxels(object):
         for idx in tqdm(range(len(mesh_dataset)), desc=desc, disable=False):
             name = mesh_dataset.names[idx]
             if name not in self.cache_transforms[self.resolution].cached_ids:
-                mesh, _ = mesh_dataset[idx]
+                mesh = mesh_dataset[idx]
                 mesh.to(device=device)
                 self.cache_transforms[self.resolution](name, mesh)
 
@@ -109,7 +108,6 @@ class ModelNetVoxels(object):
         attributes = dict()
         name = self.names[index]
         voxel = self.cache_transforms[self.resolution](name)
-        category = self.categories[self.cat_idxs[index]]
-        print(len(self.names))
-        print(voxel.shape, category)
-        return voxel, category
+        category = torch.tensor(self.cat_idxs[index], dtype=torch.long, device=self.device)
+        return voxel.unsqueeze_(0), category
+        
