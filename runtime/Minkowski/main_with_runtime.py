@@ -267,7 +267,7 @@ def main():
         if args.synthetic_data:
             train_dataset = SyntheticDataset((3, 224, 224), len(train_dataset))
         val_dataset = ShapeNetDataset(root=args.data_dir,classification=True,
-                                      split='val',
+                                      split='test',
                                       voxel_size=args.voxel_size)
     else:
         train_dataset = ModelNetDataLoader(root=args.data_dir,
@@ -276,7 +276,7 @@ def main():
                                            voxel_size=args.voxel_size)
         val_dataset = ModelNetDataLoader(root=args.data_dir,
                                          shared_dict={},
-                                         split='val',
+                                         split='test',
                                          voxel_size=args.voxel_size)
 
     distributed_sampler = False
