@@ -1,6 +1,5 @@
 import os
 import os.path
-import open3d as o3d
 import torch.utils.data as data
 import torch
 import numpy as np
@@ -8,10 +7,14 @@ import sys
 import json
 import MinkowskiEngine as ME
 import time
-from multiprocessing import Manager
-from torchvision.transforms import Compose as VisionCompose
-from scipy.linalg import expm, norm
+from typing import Callable, Iterable, Optional, Union, List
+from glob import glob
+from tqdm import tqdm
 
+from kaolin.rep.TriangleMesh import TriangleMesh
+from kaolin.transforms import transforms as tfs
+import kaolin.transforms as tfs
+from torch.utils.data import Dataset
 
 class ShapeNetDataset(data.Dataset):
     def __init__(self,
@@ -152,7 +155,6 @@ def collate_pointcloud_fn(list_data):
     assert len(labels) == eff_num_batch
 
     coords_batch, feats_batch, quantized_labels = ME.utils.sparse_collate(coords, feats, labels)
-    #print("collate_pointcloud_fn time:", time.time() - start)
 
     # Concatenate all lists
     return {
@@ -161,233 +163,127 @@ def collate_pointcloud_fn(list_data):
         'labels': quantized_labels,
     }
 
-class ModelNet40Dataset(data.Dataset):
-    AUGMENT = None
-    DATA_FILES = {
-        'train': 'train_modelnet40.txt',
-        'val': 'val_modelnet40.txt',
-        'test': 'test_modelnet40.txt'
-    }
+class ModelNet(object):
+    def __init__(self, basedir: str,
+                 split: Optional[str] = 'train',
+                 categories: Optional[Iterable] = ['bed'],
+                 transform: Optional[Callable] = None,
+                 device: Optional[Union[torch.device, str]] = 'cpu'):
 
-    CATEGORIES = [
-        'airplane', 'bathtub', 'bed', 'bench', 'bookshelf', 'bottle', 'bowl',
-        'car', 'chair', 'cone', 'cup', 'curtain', 'desk', 'door', 'dresser',
-        'flower_pot', 'glass_box', 'guitar', 'keyboard', 'lamp', 'laptop',
-        'mantel', 'monitor', 'night_stand', 'person', 'piano', 'plant', 'radio',
-        'range_hood', 'sink', 'sofa', 'stairs', 'stool', 'table', 'tent',
-        'toilet', 'tv_stand', 'vase', 'wardrobe', 'xbox'
-    ]
-    def __init__(self, root, shared_dict={}, split='train', voxel_size=0.05, transform=None):
-        self.root = root
-        self.split = split
-        self.files = []
-        self.cache = shared_dict 
-        self.data_objects = []
+        assert split.lower() in ['train', 'test']
+
+        self.basedir = basedir
         self.transform = transform
-        self.voxel_size = voxel_size
-        self.last_cache_percent = 0
-        self.files = open(os.path.join(self.root,
-                                       self.DATA_FILES[split])).read().split()
-        print("Loading the subset {%s} from {%s} with {%d} files" % (split, self.root, len(self.files)))
-        self.density = 4000
+        self.device = device
+        self.categories = categories
+        self.names = []
+        self.filepaths = []
+        self.cat_idxs = []
 
-        # Ignore warnings in obj loader
-        o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Error)
+        if not os.path.exists(basedir):
+            raise ValueError('ModelNet was not found at "{0}".'.format(basedir))
+
+        available_categories = [p for p in os.listdir(basedir) if os.path.isdir(os.path.join(basedir, p))]
+
+        for cat_idx, category in enumerate(categories):
+            assert category in available_categories, 'object class {0} not in list of available classes: {1}'.format(
+                category, available_categories)
+
+            cat_paths = glob(os.path.join(basedir, category, split.lower(), '*.off'))
+
+            self.cat_idxs += [cat_idx] * len(cat_paths)
+            self.names += [os.path.splitext(os.path.basename(cp))[0] for cp in cat_paths]
+            self.filepaths += cat_paths
 
     def __len__(self):
-        return len(self.files)
+        return len(self.names)
 
-    def __getitem__(self, idx):
-        mesh_file = os.path.join(self.root, self.files[idx])
-        category = self.files[idx].split('/')[0]
-        label = self.CATEGORIES.index(category)
-        label = torch.from_numpy(np.array([label]).astype(np.int64))
-        if idx in self.cache:
-            xyz = self.cache[idx]
-        else:
-            # Load a mesh, over sample, copy, rotate, voxelization
-            assert os.path.exists(mesh_file)
-            pcd = o3d.io.read_triangle_mesh(mesh_file)
-            # Normalize to fit the mesh inside a unit cube while preserving aspect ratio
-            vertices = np.asarray(pcd.vertices)
-            vmax = vertices.max(0, keepdims=True)
-            vmin = vertices.min(0, keepdims=True)
-            pcd.vertices = o3d.utility.Vector3dVector((vertices - vmin) /
-                                                      (vmax - vmin).max() + 0.5)
-
-            # Oversample points and copy
-            xyz = resample_mesh(pcd, density=self.density)
-            self.cache[idx] = xyz
-            cache_percent = int((len(self.cache) / len(self)) * 100)
-            if cache_percent > 0 and cache_percent % 10 == 0 and cache_percent != self.last_cache_percent:
-                #print("Cached {%s}: {%d} / {%d}: {%.2f}%" % (self.split, len(self.cache), len(self), cache_percent))
-                self.last_cache_percent = cache_percent
-        # Use color or other features if available
-        feats = np.ones((len(xyz), 3))
-
-        if len(xyz) < 1000:
-            print("Skipping {%s}: does not have sufficient CAD sampling density after resampling: {%d}." % (mesh_file, len(xyz)))
-            return None
-
+    def __getitem__(self, index):
+        """Returns the item at index idx. """
+        data = TriangleMesh.from_off(self.filepaths[index])
+        data.to(self.device)
         if self.transform:
-            xyz, feats = self.transform(xyz, feats)
+            data = self.transform(data)
 
-        # Get coords
-        coords = np.floor(xyz / self.voxel_size)
-        inds = ME.utils.sparse_quantize(coords, return_index=True)
-        coords = torch.from_numpy(coords)
-        coords = coords.type(torch.int) 
-        feats = torch.from_numpy(xyz) 
-        feats = feats.type(torch.float) 
+        return data
 
-        return coords[inds], feats[inds], label
+class ModelNetMinkowski(object):
+    def __init__(self, basedir: str, cache_dir: Optional[str] = None, 
+                 split: Optional[str] = 'train',
+                 num_points: int = 16384,
+                 voxel_size: float = 0.05,
+                 device: Optional[Union[torch.device, str]] = 'cpu'):
 
-def resample_mesh(mesh_cad, density=1):
-    '''
-    https://chrischoy.github.io/research/barycentric-coordinate-for-mesh-sampling/
-    Samples point cloud on the surface of the model defined as vectices and
-    faces. This function uses vectorized operations so fast at the cost of some
-    memory.
-    param mesh_cad: low-polygon triangle mesh in o3d.geometry.TriangleMesh
-    param density: density of the point cloud per unit area
-    param return_numpy: return numpy format or open3d pointcloud format
-    return resampled point cloud
-    Reference :
-      [1] Barycentric coordinate system
-      \begin{align}
-        P = (1 - \sqrt{r_1})A + \sqrt{r_1} (1 - r_2) B + \sqrt{r_1} r_2 C
-      \end{align}
-    '''
-    faces = np.array(mesh_cad.triangles).astype(int)
-    vertices = np.array(mesh_cad.vertices)
+        self.basedir = basedir
+        self.device = torch.device(device)
+        self.cache_dir = cache_dir if cache_dir is not None else os.path.join(basedir, 'cache_points')
+        self.num_points = num_points
+        self.voxel_size = voxel_size
 
-    vec_cross = np.cross(vertices[faces[:, 0], :] - vertices[faces[:, 2], :],
-                         vertices[faces[:, 1], :] - vertices[faces[:, 2], :])
-    face_areas = np.sqrt(np.sum(vec_cross**2, 1))
+        categories = ['sofa', 'cup', 'plant', 'radio',
+                      'sink', 'bookshelf', 'toilet', 'lamp', 
+                      'guitar', 'dresser', 'laptop', 'wardrobe', 
+                      'flower_pot', 'piano', 'xbox', 'glass_box', 
+                      'bottle', 'stairs', 'table', 'bench', 
+                      'tv_stand', 'bathtub', 'stool', 'person', 
+                      'chair', 'car', 'keyboard', 'night_stand', 
+                      'mantel', 'airplane', 'monitor', 'bed', 
+                      'tent', 'vase', 'desk', 'bowl', 
+                      'door', 'cone', 'curtain', 'range_hood']
 
-    n_samples = (np.sum(face_areas) * density).astype(int)
-    # face_areas = face_areas / np.sum(face_areas)
+        mesh_dataset = ModelNet(basedir=basedir, split=split, categories=categories, device=device)
 
-    # Sample exactly n_samples. First, oversample points and remove redundant
-    # Bug fix by Yangyan (yangyan.lee@gmail.com)
-    n_samples_per_face = np.ceil(density * face_areas).astype(int)
-    floor_num = np.sum(n_samples_per_face) - n_samples
-    if floor_num > 0:
-        indices = np.where(n_samples_per_face > 0)[0]
-        floor_indices = np.random.choice(indices, floor_num, replace=True)
-        n_samples_per_face[floor_indices] -= 1
+        self.names = mesh_dataset.names
+        self.categories = mesh_dataset.categories
+        self.cat_idxs = mesh_dataset.cat_idxs
 
-    n_samples = np.sum(n_samples_per_face)
+    
+        self.cache_transforms = tfs.CacheCompose([
+            tfs.TriangleMeshToPointCloud(num_samples=num_points),
+            tfs.NormalizePointCloud(),
+        ], self.cache_dir)
 
-    # Create a vector that contains the face indices
-    sample_face_idx = np.zeros((n_samples,), dtype=int)
-    acc = 0
-    for face_idx, _n_sample in enumerate(n_samples_per_face):
-        sample_face_idx[acc:acc + _n_sample] = face_idx
-        acc += _n_sample
+        try:
+            for idx in tqdm(range(len(mesh_dataset)), disable=False):
+                name = mesh_dataset.names[idx]
+                if name not in self.cache_transforms.cached_ids:
+                    mesh = mesh_dataset[idx]
+                    mesh.to(device=device)
+                    self.cache_transforms(name, mesh)
+        except:
+            print('error')
 
-    r = np.random.rand(n_samples, 2)
-    A = vertices[faces[sample_face_idx, 0], :]
-    B = vertices[faces[sample_face_idx, 1], :]
-    C = vertices[faces[sample_face_idx, 2], :]
 
-    P = (1 - np.sqrt(r[:, 0:1])) * A + \
-        np.sqrt(r[:, 0:1]) * (1 - r[:, 1:]) * B + \
-        np.sqrt(r[:, 0:1]) * r[:, 1:] * C
+    def __len__(self):
+        return len(self.names)
 
-    return P
-
-class Compose(VisionCompose):
-    def __call__(self, *args):
-        for t in self.transforms:
-            args = t(*args)
-        return args
-
-class RandomRotation:
-    def __init__(self, axis=None, max_theta=180):
-        self.axis = axis
-        self.max_theta = max_theta
-
-    def _M(self, axis, theta):
-        return expm(np.cross(np.eye(3), axis / norm(axis) * theta))
-
-    def __call__(self, coords, feats):
-        if self.axis is not None:
-            axis = self.axis
-        else:
-            axis = np.random.rand(3) - 0.5
-        R = self._M(axis, (np.pi * self.max_theta / 180) * 2 *
-                    (np.random.rand(1) - 0.5))
-        R_n = self._M(
-            np.random.rand(3) - 0.5,
-            (np.pi * 15 / 180) * 2 * (np.random.rand(1) - 0.5))
-        return coords @ R @ R_n, feats
-
-class RandomScale:
-    def __init__(self, min, max):
-        self.scale = max - min
-        self.bias = min
-
-    def __call__(self, coords, feats):
-        s = self.scale * np.random.rand(1) + self.bias
-        return coords * s, feats
-
-class RandomShear:
-    def __call__(self, coords, feats):
-        T = np.eye(3) + 0.1 * np.random.randn(3, 3)
-        return coords @ T, feats
-
-class RandomTranslation:
-    def __call__(self, coords, feats):
-        trans = 0.05 * np.random.randn(1, 3)
-        return coords + trans, feats
-
-def make_data_loader_modelnet40(root, shared_dict, split, augment_data, batch_size, shuffle, num_workers,
-                                repeat, voxel_size):
-    transformations = []
-    if augment_data:
-        transformations.append(RandomRotation(axis=np.array([0, 0, 1])))
-        transformations.append(RandomTranslation())
-        transformations.append(RandomScale(0.8, 1.2))
-        transformations.append(RandomShear())
-
-    dset = ModelNet40Dataset(root, shared_dict,
-        split, transform=Compose(transformations), voxel_size=voxel_size)
-
-    args = {
-        'batch_size': batch_size,
-        'num_workers': num_workers,
-        'collate_fn': collate_pointcloud_fn,
-        'pin_memory': False,
-        'drop_last': False
-    }
-
-    if repeat:
-        args['sampler'] = InfSampler(dset, shuffle)
-    else:
-        args['shuffle'] = shuffle
-
-    loader = torch.utils.data.DataLoader(dset, **args)
-    return loader
+    def __getitem__(self, index):
+        """Returns the item at index idx. """
+        data = dict()
+        attributes = dict()
+        name = self.names[index]
+        point_clouds = self.cache_transforms[self.resolution](name)
+        quantized_coords = point_clouds.div(self.voxel_size).floor()
+        inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
+        feats = np.empty([quantized_coords[inds].size(0), 1])
+        feats.fill(1)
+        feats = torch.from_numpy(feats.astype(np.float32))
+        category = torch.tensor(self.cat_idxs[index], dtype=torch.long, device=self.device)
+        return quantized_coords[inds], feats, category
+        
 
 
 if __name__ == '__main__':
-    manager = Manager()
-    shared_dict = manager.dict()
-
-    train_transpose = Compose([RandomRotation(axis=np.array([0, 0, 1])),
-                               RandomTranslation(),
-                               RandomScale(0.8, 1.2), 
-                               RandomShear()])
-    train_dataset = ModelNet40Dataset(root="/extra_disk/keke/pipeDream/dataSet/ModelNet40",
-                                      shared_dict=shared_dict,
+    train_dataset = ModelNetMinkowski(basedir="../../dense_point_cloud/ModelNet40",
                                       split='train',
-                                      voxel_size=0.05,
-                                      transform=train_transpose)
+                                      voxel_size=0.05)
+    train_dataset = ModelNetMinkowski(basedir="../../dense_point_cloud/ModelNet40",
+                                      split='test',
+                                      voxel_size=0.05)
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                         batch_size=32,
                                         shuffle=True,
-                                        num_workers=4,
+                                        num_workers=16,
                                         pin_memory=True,
                                         collate_fn=collate_pointcloud_fn)
     print("len(train_dataset):", len(train_dataset))

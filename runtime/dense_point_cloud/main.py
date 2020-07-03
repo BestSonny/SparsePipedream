@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser(description='PyTorch Minkowski Training')
 parser.add_argument('--data_dir', type=str, required=True, help="dataset path")
 # parser.add_argument('--module', '-m', required=True,
 #                     help='name of module that contains full model definition')
-parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--epochs', default=90, type=int, metavar='N',
                     help='number of total epochs to run')
@@ -117,23 +117,23 @@ def main():
     #module = importlib.import_module(args.module)
     #args.arch = module.arch()
     #model = module.full_model()
-    # model = vgg.vgg16_bn(in_channels=1, out_channels=40)
-    # print("model:", model)
+    model = vgg.vgg16_bn(in_channels=1, out_channels=40)
+    print("model:", model)
 
-    # model = model.cuda()
-    # if not args.distributed:
-    #     model = torch.nn.DataParallel(model).cuda()
-    # else:
-    #     model.cuda()
-    #     model = torch.nn.parallel.DistributedDataParallel(model)
+    model = model.cuda()
+    if not args.distributed:
+        model = torch.nn.DataParallel(model).cuda()
+    else:
+        model.cuda()
+        model = torch.nn.parallel.DistributedDataParallel(model)
 
-    # # define loss function (criterion) and optimizer
-    # criterion = nn.CrossEntropyLoss().cuda()
+    # define loss function (criterion) and optimizer
+    criterion = nn.CrossEntropyLoss().cuda()
 
-    # global model_parameters, master_parameters
-    # optimizer = torch.optim.SGD(model.parameters(), args.lr,
-    #                              momentum=args.momentum,
-    #                              weight_decay=args.weight_decay)
+    global model_parameters, master_parameters
+    optimizer = torch.optim.SGD(model.parameters(), args.lr,
+                                 momentum=args.momentum,
+                                 weight_decay=args.weight_decay)
     # Data loading code
     manager = Manager()
     shared_dict = manager.dict() #create cache for storing data

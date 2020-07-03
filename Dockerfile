@@ -40,7 +40,11 @@ WORKDIR /workspace
 RUN git clone https://github.com/BestSonny/kaolin.git && \
     cd kaolin && \
     pip install -r requirements.txt && \
-    python setup.py install
+    TORCH_CUDA_ARCH_LIST="5.2 6.0 6.1 7.0 7.5+PTX" \
+    CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
+    NCCL_INCLUDE_DIR="/usr/include/" \
+    NCCL_LIB_DIR="/usr/lib/" \
+    python setup.py install 
 
 # # Reset default working directory
 WORKDIR /workspace
