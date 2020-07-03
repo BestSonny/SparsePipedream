@@ -23,6 +23,7 @@ IMAGE_CLASSIFICATION = 'image_classification'
 MINKOWSKI = 'Minkowski'
 TRANSLATION = 'translation'
 SPEECH_TO_TEXT = 'speech_to_text'
+POINT_CLOUD = 'point_cloud'
 
 # Optional configurations fields.
 DISTRIBUTED_BACKEND = 'distributed_backend'
@@ -113,6 +114,10 @@ if __name__ == "__main__":
         python_path = 'python'
     elif configurations[MODEL_TYPE] == MINKOWSKI:
         main_with_runtime_folder = 'Minkowski'
+        disable_gpu_gpu_communication = False
+        python_path = 'python'
+    elif configurations[MODEL_TYPE] == POINT_CLOUD:
+        main_with_runtime_folder = 'dense_point_cloud'
         disable_gpu_gpu_communication = False
         python_path = 'python'
     elif configurations[MODEL_TYPE] == SPEECH_TO_TEXT:
@@ -210,7 +215,7 @@ if __name__ == "__main__":
                 "main_with_runtime_folder": main_with_runtime_folder,
         })
     runtime_cmd_preamble_list.append('cd %(working_dir)s/%(main_with_runtime_folder)s; '
-                                     '%(python_path)s' % {
+                                     'CUDA_VISIBLE_DEVICES="1,2,3,0" %(python_path)s' % {
                                          "working_dir": os.getcwd(),
                                          "main_with_runtime_folder":
                                             main_with_runtime_folder,

@@ -117,7 +117,7 @@ def main():
     module = importlib.import_module(args.module)
     args.arch = module.arch()
     model = module.full_model()
-    #model = vgg.vgg16_bn(out_channels=40)
+    #model = vgg.vgg16_bn(in_channels=1, out_channels=40)
     print("model:", model)
 
     model = model.cuda()
@@ -174,7 +174,9 @@ def main():
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=args.eval_batch_size, 
                                              shuffle=False,
-                                             num_workers=args.workers, pin_memory=True,
+                                             #No worker to save val data in memory
+                                             #num_workers=args.workers, 
+                                             pin_memory=True,
                                              sampler=val_sampler,
                                              collate_fn=dataset.collate_pointcloud_fn)
     for epoch in range(args.start_epoch, args.epochs):

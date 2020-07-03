@@ -53,7 +53,7 @@ class Stage1(torch.nn.Module):
         self.layer31 = ME.MinkowskiLinear(in_features=4096, out_features=4096, bias=True)
         self.layer32 = ME.MinkowskiReLU()
         self.layer33 = Dropout(p=0.5, inplace=False)
-        self.layer34 = ME.MinkowskiLinear(in_features=4096, out_features=16, bias=True)
+        self.layer34 = ME.MinkowskiLinear(in_features=4096, out_features=40, bias=True)
 
     
 
