@@ -38,8 +38,8 @@ RUN git clone https://github.com/BestSonny/MinkowskiEngineM.git && \
 
 WORKDIR /workspace
 RUN git clone https://github.com/BestSonny/kaolin.git && \
-    cd kaolin &&
-    pip install -r requirements.txt
+    cd kaolin && \
+    pip install -r requirements.txt && \
     python setup.py install
 
 # # Reset default working directory
