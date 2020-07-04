@@ -326,11 +326,12 @@ def main():
             if r.stage != r.num_stages - 1: prec1 = 0
 
             # remember best prec@1 and save checkpoint
-            is_best = prec1 > best_prec1
+            #is_best = prec1 > best_prec1
             best_prec1 = max(prec1, best_prec1)
 
             should_save_checkpoint = args.checkpoint_dir_not_nfs or r.rank_in_stage == 0
-            if args.checkpoint_dir and should_save_checkpoint and is_best:
+            if args.checkpoint_dir and should_save_checkpoint: # and is_best:
+                print("Saving checkpoint")
                 save_checkpoint({
                     'epoch': epoch + 1,
                     'arch': args.arch,

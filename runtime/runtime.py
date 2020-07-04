@@ -489,14 +489,23 @@ class StageRuntime:
         """Run forward pass.
         """
         # Receive tensors from previous worker.
+        start = time.time()
         self.receive_tensors_forward()
+        dataIn_time = time.time() - start
         tensors = self.tensors[-1]
 
         # Run forward pass.
+        start = time.time()
         self._run_forward(tensors)
+        compute_time = time.time() - start
+        self.forward_stats.stats['receive_tensors'] += dataIn_time
+        self.forward_stats.stats['compute_time'] += compute_time
 
         # Send tensors forward.
+        start = time.time()
         self.send_tensors_forward()
+        tensor_send_time = time.time() - start
+        self.forward_stats.stats['send_tensors'] += tensor_send_time 
         if self.verbose_freq > 0 and self.forward_minibatch_id % self.verbose_freq == 0:
             self.forward_stats.print_stats()
         self.forward_stats.reset_stats()
@@ -547,7 +556,10 @@ class StageRuntime:
 
     def run_backward(self):
         # Receive input gradients needed for backward pass.
+        start = time.time()
         self.receive_tensors_backward()
+        dataIn_time = time.time() - start
+        self.backward_stats.stats['receive_tensors'] += dataIn_time
         # Backward pass through modules in reverse order.
         inputs = {}
         outputs = {}
@@ -615,9 +627,14 @@ class StageRuntime:
 
             if input_name != "input0" and input_name != "input1" and input_name != "input2" and input_name != "input":
                 self.gradients[input_name] = input_gradients[input_name]
+        compute_time = time.time() - start
+        self.backward_stats.stats['compute_time'] += compute_time
 
         # Send output gradients.
+        start = time.time()
         self.send_tensors_backward()
+        tensor_send_time = time.time() - start
+        self.backward_stats.stats['send_tensors'] += tensor_send_time 
         if self.verbose_freq > 0 and self.backward_minibatch_id % self.verbose_freq == 0:
             self.backward_stats.print_stats()
         self.backward_stats.reset_stats()
