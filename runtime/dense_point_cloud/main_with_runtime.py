@@ -24,6 +24,7 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 from multiprocessing import Manager
 from dataset.modelNetVoxelDataset import ModelNetVoxelDataset
+from dataset.modelnet import ModelNetVoxels
 
 
 sys.path.append("../")
@@ -103,7 +104,7 @@ parser.add_argument('--macrobatch', action='store_true',
                     help='Macrobatch updates to save memory')
 parser.add_argument('--voxel_size', type=int, default=32)
 parser.add_argument('--npoints', type=int, default=2048)
-parser.add_argument('--dataset', default='modelnet40', type=str,
+parser.add_argument('--dataset', default='kaolinmodelnetvoxeldataset', type=str,
                     help='dataset name, modelnet40 or shapenet')
 
 ch = logging.StreamHandler(sys.stdout)
@@ -261,7 +262,7 @@ def main():
         val_dataset = ShapeNetDataset(root=args.data_dir,classification=True,
                                       split='val',
                                       voxel_size=args.voxel_size)
-    else:
+    elif args.dataset == 'modelnetvoxeldataset':
         train_dataset = ModelNetVoxelDataset(root=args.data_dir,
                                              shared_dict=shared_dict,
                                              npoints=args.npoints,
@@ -274,6 +275,9 @@ def main():
                                            split='test',
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)
+    elif args.dataset == 'kaolinmodelnetvoxeldataset':
+        train_dataset = ModelNetVoxels(basedir=args.data_dir, split='train')
+        val_dataset = ModelNetVoxels(basedir=args.data_dir, split='test')
 
     distributed_sampler = False
     train_sampler = None
@@ -322,11 +326,12 @@ def main():
             if r.stage != r.num_stages - 1: prec1 = 0
 
             # remember best prec@1 and save checkpoint
-            is_best = prec1 > best_prec1
+            #is_best = prec1 > best_prec1
             best_prec1 = max(prec1, best_prec1)
 
             should_save_checkpoint = args.checkpoint_dir_not_nfs or r.rank_in_stage == 0
-            if args.checkpoint_dir and should_save_checkpoint and is_best:
+            if args.checkpoint_dir and should_save_checkpoint: # and is_best:
+                print("Saving checkpoint")
                 save_checkpoint({
                     'epoch': epoch + 1,
                     'arch': args.arch,

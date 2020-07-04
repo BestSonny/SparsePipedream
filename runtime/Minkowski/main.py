@@ -1,6 +1,7 @@
 #first import dataset and open3d before import torch to avoid error in docker
 import dataset.dataset as dataset
 import torch.utils.data as data
+import shutil
 import os
 import os.path
 import numpy as np
@@ -153,11 +154,13 @@ def main():
         train_dataset = ModelNetDataLoader(root=args.data_dir,
                                            shared_dict=shared_dict,
                                            split='train',
-                                           voxel_size=args.voxel_size)
+                                           voxel_size=args.voxel_size,
+                                           data_augmentation=True)
         val_dataset = ModelNetDataLoader(root=args.data_dir,
                                            shared_dict={},
                                            split='test',
-                                           voxel_size=args.voxel_size)
+                                           voxel_size=args.voxel_size,
+                                           data_augmentation=False)
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
         val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
@@ -196,14 +199,14 @@ def main():
             # remember best prec@1 and save checkpoint
             is_best = prec1 > best_prec1
             best_prec1 = max(prec1, best_prec1)
-            #checkpoint_dict = {
-            #    'epoch': epoch + 1,
-            #    'arch': args.arch,
-            #    'state_dict': model.state_dict(),
-            #    'best_prec1': best_prec1,
-            #    'optimizer' : optimizer.state_dict(),
-            #}
-            # save_checkpoint(checkpoint_dict, is_best)
+            checkpoint_dict = {
+                'epoch': epoch + 1,
+                'arch': args.arch,
+                'state_dict': model.state_dict(),
+                'best_prec1': best_prec1,
+                'optimizer' : optimizer.state_dict(),
+            }
+            save_checkpoint(checkpoint_dict, is_best)
             print("Epoch: %d, best_prec1: %f" % (epoch + 1, best_prec1))
 
 def train(train_loader, model, criterion, optimizer, epoch):

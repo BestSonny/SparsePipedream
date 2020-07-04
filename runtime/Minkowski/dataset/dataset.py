@@ -221,6 +221,7 @@ class ModelNetMinkowski(object):
         self.num_points = num_points
         self.total_point = total_point
         self.voxel_size = voxel_size
+        print("voxel_size:", voxel_size)
 
         categories = ['sofa', 'cup', 'plant', 'radio',
                       'sink', 'bookshelf', 'toilet', 'lamp', 

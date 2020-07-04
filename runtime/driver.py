@@ -40,7 +40,7 @@ LR_WARMUP = 'lr_warmup'
 SYNTHETIC_DATA = 'synthetic_data'
 RECOMPUTE = 'recompute'
 MACROBATCH = 'macrobatch'
-NPOINTS = 'npoints'
+VOXEL_SIZE = 'voxel_size'
 
 
 '''
@@ -280,8 +280,11 @@ if __name__ == "__main__":
     if MACROBATCH in configurations and configurations[MACROBATCH]:
         runtime_cmd_list.append('--macrobatch')
 
-    if NPOINTS in configurations:
-        runtime_cmd_list.append('--npoints %d' % configurations[NPOINTS])
+    if VOXEL_SIZE in configurations:
+        if configurations[MODEL_TYPE] == MINKOWSKI:
+            runtime_cmd_list.append('--voxel_size %f' % configurations[VOXEL_SIZE])
+        elif configurations[MODEL_TYPE] == POINT_CLOUD:
+            runtime_cmd_list.append('--voxel_size %d' % configurations[VOXEL_SIZE])
 
     common_runtime_cmd = " ".join(runtime_cmd_list)
 
