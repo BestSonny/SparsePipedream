@@ -110,4 +110,3 @@ class ModelNetVoxels(object):
         voxel = self.cache_transforms[self.resolution](name)
         category = torch.tensor(self.cat_idxs[index], dtype=torch.long, device=self.device)
         return voxel.unsqueeze_(0), category
-        
