@@ -27,6 +27,7 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 from multiprocessing import Manager
 from dataset.modelNetDataLoader import ModelNetDataLoader
+from dataset.dataset import ModelNetMinkowski
 
 import communication_sparse as comm_sparse
 import runtime_sparse
@@ -108,7 +109,7 @@ parser.add_argument('--recompute', action='store_true',
 parser.add_argument('--macrobatch', action='store_true',
                     help='Macrobatch updates to save memory')
 parser.add_argument('--voxel_size', type=float, default=0.05)
-parser.add_argument('--dataset', default='modelnet40', type=str,
+parser.add_argument('--dataset', default='kaolinmodelnetvoxeldataset', type=str,
                     help='dataset name, modelnet40 or shapenet')
 
 ch = logging.StreamHandler(sys.stdout)
@@ -269,7 +270,7 @@ def main():
         val_dataset = ShapeNetDataset(root=args.data_dir,classification=True,
                                       split='test',
                                       voxel_size=args.voxel_size)
-    else:
+    elif args.dataset == 'modelnetvoxeldataset':
         train_dataset = ModelNetDataLoader(root=args.data_dir,
                                            shared_dict=shared_dict,
                                            split='train',
@@ -280,6 +281,13 @@ def main():
                                          split='test',
                                          voxel_size=args.voxel_size,
                                          data_augmentation=False)
+    elif args.dataset == 'kaolinmodelnetvoxeldataset':
+        train_dataset = ModelNetMinkowski(basedir=args.data_dir,
+                                          split='train',
+                                          voxel_size=args.voxel_size)
+        val_dataset = ModelNetMinkowski(basedir=args.data_dir,
+                                         split='test',
+                                         voxel_size=args.voxel_size)
 
     distributed_sampler = False
     train_sampler = None

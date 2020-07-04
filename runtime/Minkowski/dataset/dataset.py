@@ -155,7 +155,8 @@ def collate_pointcloud_fn(list_data):
     assert len(labels) == eff_num_batch
 
     coords_batch, feats_batch, quantized_labels = ME.utils.sparse_collate(coords, feats, labels)
-
+    print(coords_batch)
+    input()
     # Concatenate all lists
     return {
         'coords': coords_batch,
@@ -211,7 +212,7 @@ class ModelNetMinkowski(object):
     def __init__(self, basedir: str, cache_dir: Optional[str] = None, 
                  split: Optional[str] = 'train',
                  num_points: int = 16384,
-                 voxel_size: float = 0.05,
+                 voxel_size: float = 0.02,
                  device: Optional[Union[torch.device, str]] = 'cpu'):
 
         self.basedir = basedir
@@ -243,15 +244,13 @@ class ModelNetMinkowski(object):
             tfs.NormalizePointCloud(),
         ], self.cache_dir)
 
-        try:
-            for idx in tqdm(range(len(mesh_dataset)), disable=False):
-                name = mesh_dataset.names[idx]
-                if name not in self.cache_transforms.cached_ids:
-                    mesh = mesh_dataset[idx]
-                    mesh.to(device=device)
-                    self.cache_transforms(name, mesh)
-        except:
-            print('error')
+        for idx in tqdm(range(len(mesh_dataset)), disable=False):
+            name = mesh_dataset.names[idx]
+            # if name == 'cone_0117' or name == 'curtain_0066':
+            if name not in self.cache_transforms.cached_ids:
+                mesh = mesh_dataset[idx]
+                mesh.to(device=device)
+                self.cache_transforms(name, mesh)
 
 
     def __len__(self):
