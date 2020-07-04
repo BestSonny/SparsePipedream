@@ -210,14 +210,16 @@ class ModelNet(object):
 class ModelNetMinkowski(object):
     def __init__(self, basedir: str, cache_dir: Optional[str] = None, 
                  split: Optional[str] = 'train',
-                 num_points: int = 16384,
-                 voxel_size: float = 0.05,
+                 total_point: int = 16384,
+                 num_points: int = 4096,
+                 voxel_size: float = 0.02,
                  device: Optional[Union[torch.device, str]] = 'cpu'):
 
         self.basedir = basedir
         self.device = torch.device(device)
         self.cache_dir = cache_dir if cache_dir is not None else os.path.join(basedir, 'cache_points')
         self.num_points = num_points
+        self.total_point = total_point
         self.voxel_size = voxel_size
 
         categories = ['sofa', 'cup', 'plant', 'radio',
@@ -239,19 +241,17 @@ class ModelNetMinkowski(object):
 
     
         self.cache_transforms = tfs.CacheCompose([
-            tfs.TriangleMeshToPointCloud(num_samples=num_points),
+            tfs.TriangleMeshToPointCloud(num_samples=total_point),
             tfs.NormalizePointCloud(),
         ], self.cache_dir)
 
-        try:
-            for idx in tqdm(range(len(mesh_dataset)), disable=False):
-                name = mesh_dataset.names[idx]
-                if name not in self.cache_transforms.cached_ids:
-                    mesh = mesh_dataset[idx]
-                    mesh.to(device=device)
-                    self.cache_transforms(name, mesh)
-        except:
-            print('error')
+        for idx in tqdm(range(len(mesh_dataset)), disable=False):
+            name = mesh_dataset.names[idx]
+            # if name == 'cone_0117' or name == 'curtain_0066':
+            if name not in self.cache_transforms.cached_ids:
+                mesh = mesh_dataset[idx]
+                mesh.to(device=device)
+                self.cache_transforms(name, mesh)
 
 
     def __len__(self):
@@ -263,6 +263,11 @@ class ModelNetMinkowski(object):
         attributes = dict()
         name = self.names[index]
         point_clouds = self.cache_transforms(name)
+        point_clouds = point_clouds - point_clouds.min(dim=0)[0]
+        scale = point_clouds.max(dim=0)[0] - point_clouds.min(dim=0)[0]
+        point_clouds = (point_clouds -point_clouds.min(dim=0)[0])/(scale*1.0)
+        choice = np.random.choice(point_clouds.shape[0], self.num_points, replace=False)
+        point_clouds = point_clouds[choice]
         quantized_coords = point_clouds.div(self.voxel_size).floor()
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
         feats = np.empty([quantized_coords[inds].size(0), 1])

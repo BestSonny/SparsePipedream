@@ -1,10 +1,10 @@
 'log_directory': '/data/panhe/pipedream/runtime/Minkowski/results/test_accuracy'
 'module': 'models.vgg16bn.gpus=2'
-'data_dir': '/data/panhe/pipedream/runtime/Minkowski/ModelNet40'
+'data_dir': '/data/panhe/pipedream/runtime/dense_point_cloud/ModelNet40'
 'config_file': 'models/vgg16bn/gpus=2/mp_conf.json'
 'container': 'spare_pipedream:latest'
 'machines': ['localhost:0', 'localhost:1']
-'batch_size': 256
+'batch_size': 128
 'learning_rate': 0.01
 'weight_decay': 0.0005
 'epochs': 90
