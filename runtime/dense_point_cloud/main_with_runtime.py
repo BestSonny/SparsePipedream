@@ -302,8 +302,7 @@ def main():
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=args.batch_size,
                                              shuffle=False,
-                                             #To save val dataset in memory, no num_workers
-                                             #num_workers=int(args.workers),
+                                             num_workers=int(args.workers),
                                              pin_memory=True,
                                              sampler=val_sampler)
     # if checkpoint is loaded, start by running validation
@@ -339,6 +338,7 @@ def main():
                     'best_prec1': best_prec1,
                     'optimizer' : optimizer.state_dict(),
                 }, args.checkpoint_dir, r.stage)
+            torch.distributed.barrier()
             print("Epoch: %d, best_prec1: %f" % (epoch, best_prec1))
     end_run = time.time()
     print("Total running time: %.3f" % (end_run - start_run))
