@@ -210,8 +210,10 @@ if __name__ == "__main__":
     runtime_cmd_preamble_list = []
     if args.launch_single_container and CONFIG_FILE in configurations:
         runtime_cmd_preamble_list.append(
-            ('cp %(working_dir)s/launch.py '
+            ('mkdir -p %(output_dir)s;' 
+             'cp %(working_dir)s/launch.py '
              '%(working_dir)s/%(main_with_runtime_folder)s; ') % {
+                "output_dir": output_dir,
                 "working_dir": os.getcwd(),
                 "main_with_runtime_folder": main_with_runtime_folder,
         })
@@ -294,6 +296,7 @@ if __name__ == "__main__":
         all_runtime_cmds = []
         for node_rank, (node_ip, workers) in \
             enumerate(nodes_to_workers_mapping.items()):
+   
             docker_cmd = 'nvidia-docker run -d %(mount_directories)s ' \
                          '--net=host --runtime=nvidia ' \
                          '--shm-size 16g %(container)s /bin/bash -c' % {
