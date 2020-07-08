@@ -1,0 +1,3 @@
+Server0
+    TitanV 1 hete_files/graph_tv_short.txt
+    TitanXP 3 hete_files/graph_txp_short.txt
