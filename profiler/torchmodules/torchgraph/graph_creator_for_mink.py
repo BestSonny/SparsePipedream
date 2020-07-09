@@ -300,4 +300,6 @@ class GraphCreatorForMink(object):
         self.graph.to_dot(os.path.join(directory, "graph.dot"))
         with open(os.path.join(directory, "graph.txt"), 'w') as f:
             f.write(str(self.graph))
-        self.graph.render_bar_graphs_and_cdfs(directory)
+        # latex has some error (LaTeX Error: File `type1ec.sty' not found) when plotting the graph
+        # Possible fix: sudo apt-get install dvipng texlive-latex-extra texlive-fonts-recommended 
+        #self.graph.render_bar_graphs_and_cdfs(directory)

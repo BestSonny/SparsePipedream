@@ -4,6 +4,7 @@ import torchmodules.torchlogger as torchlogger
 import torchmodules.torchprofiler as torchprofiler
 import torchmodules.torchsummary as torchsummary
 from multiprocessing import Manager
+from dataset.dataset import ModelNetMinkowski
 
 import torch.utils.data as data
 import os
@@ -27,7 +28,7 @@ parser = argparse.ArgumentParser(description='PyTorch Sparse Point Cloud Trainin
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--batch_size', type=int, default=128)
 parser.add_argument('--max_ngpu', type=int, default=2)
-parser.add_argument('--voxel_size', type=float, default=0.05)
+parser.add_argument('--voxel_size', type=float, default=0.02)
 parser.add_argument('--max_iter', type=int, default=120000)
 parser.add_argument('--val_freq', type=int, default=1000)
 parser.add_argument('--lr', default=1e-2, type=float)
@@ -37,7 +38,7 @@ parser.add_argument('--num_workers', type=int, default=4)
 parser.add_argument('--stat_freq', type=int, default=10)
 parser.add_argument('--load_optimizer', type=str, default='true')
 parser.add_argument('--nepoch', type=int, default=20, help='number of epochs to train for')
-parser.add_argument('--arch', '-a', metavar='ARCH', default='minkunet34c',
+parser.add_argument('--arch', '-a', metavar='ARCH', default='minkvgg',
                     choices=model_names,
                     help='model architecture: ' +
                         ' | '.join(model_names) +
@@ -64,7 +65,7 @@ def create_graph(model, train_loader, summary, directory):
         feats = data_dict['feats']
         labels = data_dict['labels']
         sin = ME.SparseTensor(
-            coords[:, :3] * args.voxel_size,
+            feats,
             coords.int(),
             allow_duplicate_coords=True,  # for classification, it doesn't matter
         )  #.to(device)
@@ -224,25 +225,24 @@ def main():
     args = parser.parse_args()
     args.profile = True
     #model = munet.MinkUNet34C(3, 16, D=3) #MinkUNet34C(3, 16, D=3)
-    model = vgg.vgg16_bn(out_channels=16, D=3) 
-    print("Profiling model mink-vgg16_bn")
+    model = vgg.vgg16_bn(in_channels=1, out_channels=40, D=3) 
+    print("Profiling model mink-vgg16_bn, voxel size:", args.voxel_size, " batch size", args.batch_size)
     model.cuda()
 
     manager = Manager()
     shared_dict = manager.dict()
-    dataset = ShapeNetDataset(root=args.dataset,
-                              shared_dict=shared_dict,
-                              classification=True,
-                              voxel_size=args.voxel_size)
+    dataset = ModelNetMinkowski(basedir=args.dataset,
+                                split='train',
+                                voxel_size=args.voxel_size)
 
     train_dataloader = torch.utils.data.DataLoader(dataset,
                                         batch_size=args.batch_size,
                                         shuffle=True,
                                         num_workers=int(args.num_workers),
                                         collate_fn=collate_pointcloud_fn)
-    optimizer = optim.Adam(model.parameters(),
+    optimizer = optim.SGD(model.parameters(),
                             lr=args.lr,
-                            betas=(0.9,0.999),
+                            momentum=args.momentum,
                             weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, 0.95)
     criterion = torch.nn.CrossEntropyLoss()
@@ -252,7 +252,7 @@ def main():
         feats = data_dict['feats']
         labels = data_dict['labels']
         sin = ME.SparseTensor(
-                coords[:, :3] * args.voxel_size,
+                feats,
                 coords.int(),
                 allow_duplicate_coords=True,  # for classification, it doesn't matter
             )
@@ -334,7 +334,7 @@ def profile_train(train_loader, model, criterion, optimizer):
         feats = data_dict['feats']
         labels = data_dict['labels']
         sin = ME.SparseTensor(
-            coords[:, :3] * args.voxel_size,
+            feats,
             coords.int(),
             allow_duplicate_coords=True,  # for classification, it doesn't matter
         )  #.to(device)
@@ -359,7 +359,7 @@ def profile_train(train_loader, model, criterion, optimizer):
         with torchprofiler.Profiling(model, module_whitelist=['MinkowskiConvolution', 'MinkowskiBatchNorm', 'MinkowskiReLU', 'MinkowskiLinear', 'Dropout']) as p:
             aa_time = time.time()
             sin = ME.SparseTensor(
-                coords[:, :3] * args.voxel_size,
+                feats,
                 coords.int(),
                 allow_duplicate_coords=True,  # for classification, it doesn't matter
             )  #.to(device)

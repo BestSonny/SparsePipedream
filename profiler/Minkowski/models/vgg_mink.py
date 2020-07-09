@@ -67,21 +67,21 @@ class VGG(nn.Module):
                 nn.init.kaiming_normal_(m.kernel, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
-            elif isinstance(m, ME.MinkowskiInstanceNorm):
+            elif isinstance(m, ME.MinkowskiBatchNorm):
                 nn.init.constant_(m.bn.weight, 1)
                 nn.init.constant_(m.bn.bias, 0)
 
 
-def make_layers(cfg, batch_norm=False, in_channel=3, D=3):
+def make_layers(cfg, batch_norm=False, in_channels=3, D=3):
     layers = []
-    in_channels = in_channel
+    in_channels = in_channels
     for v in cfg:
         if v == 'M':
             layers += [ME.MinkowskiMaxPooling(kernel_size=2, stride=2, dimension=D)]
         else:
             conv = ME.MinkowskiConvolution(in_channels, v, kernel_size=3, stride=1, dilation=1, has_bias=False, dimension=D)
             if batch_norm:
-                layers += [conv, ME.MinkowskiInstanceNorm(v), ME.MinkowskiReLU(inplace=True)]
+                layers += [conv, ME.MinkowskiBatchNorm(v), ME.MinkowskiReLU(inplace=True)]
             else:
                 layers += [conv, ME.MinkowskiReLU(inplace=True)]
             in_channels = v
@@ -96,10 +96,10 @@ cfgs = {
 }
 
 
-def _vgg(arch, cfg, batch_norm, pretrained, progress, **kwargs):
+def _vgg(arch, cfg, batch_norm, pretrained, progress, in_channels=3, **kwargs):
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(make_layers(cfgs[cfg], batch_norm=batch_norm), **kwargs)
+    model = VGG(make_layers(cfgs[cfg], batch_norm=batch_norm, in_channels=in_channels), **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)
@@ -157,14 +157,14 @@ def vgg16(pretrained=False, progress=True, **kwargs):
     return _vgg('vgg16', 'D', False, pretrained, progress, **kwargs)
 
 
-def vgg16_bn(pretrained=False, progress=True, **kwargs):
+def vgg16_bn(pretrained=False, progress=True, in_channels=3, **kwargs):
     r"""VGG 16-layer model (configuration "D") with batch normalization
     `"Very Deep Convolutional Networks For Large-Scale Image Recognition" <https://arxiv.org/pdf/1409.1556.pdf>`_
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _vgg('vgg16_bn', 'D', True, pretrained, progress, **kwargs)
+    return _vgg('vgg16_bn', 'D', True, pretrained, progress, in_channels, **kwargs)
 
 
 def vgg19(pretrained=False, progress=True, **kwargs):

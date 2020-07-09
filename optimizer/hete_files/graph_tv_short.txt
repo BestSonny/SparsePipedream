@@ -1,0 +1,11 @@
+node1 -- Input0 -- forward_compute_time=0.000, backward_compute_time=0.000, activation_size=0.0, parameter_size=0.000
+node2 -- Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)) -- forward_compute_time=0.302, backward_compute_time=0.679, activation_size=33554432.0, parameter_size=7168000
+node3 -- BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.319, backward_compute_time=0.265, activation_size=33554432.0, parameter_size=512.000
+node4 -- ReLU(inplace) -- forward_compute_time=0.158, backward_compute_time=0.192, activation_size=33554432.0, parameter_size=10000000.000
+node5 -- Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)) -- forward_compute_time=0.640, backward_compute_time=2.240, activation_size=33554432.0, parameter_size=147712000
+node6 -- BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.303, backward_compute_time=0.273, activation_size=33554432.0, parameter_size=512000
+	node1 -- node2
+	node2 -- node3
+	node3 -- node4
+	node4 -- node5
+	node5 -- node6
