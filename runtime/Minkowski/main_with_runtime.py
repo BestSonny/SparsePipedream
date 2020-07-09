@@ -360,7 +360,9 @@ def train(train_loader, r, optimizer, epoch):
     top5 = AverageMeter()
 
     # switch to train mode
-    n = r.num_iterations(loader_size=len(train_loader))
+    #n = r.num_iterations(loader_size=len(train_loader))
+    n = r.num_iterations(loader_size=(len(train_loader)//4 * 4)) # changed here for pipedream
+    print("loader_size:", len(train_loader), "actual batches:", n, "batch_size:", args.batch_size)
     if args.num_minibatches is not None:
         n = min(n, args.num_minibatches)
     r.train(n)
@@ -456,7 +458,9 @@ def validate(val_loader, r, epoch):
     top5 = AverageMeter()
 
     # switch to evaluate mode
-    n = r.num_iterations(loader_size=len(val_loader))
+    #n = r.num_iterations(loader_size=len(val_loader))
+    n = r.num_iterations(loader_size=(len(val_loader)//4 * 4)) # changed here for pipedream
+    print("validation loader_size:", len(val_loader), "actual batches:", n, "batch_size:", args.batch_size)
     if args.num_minibatches is not None:
         n = min(n, args.num_minibatches)
     r.eval(n)

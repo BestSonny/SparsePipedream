@@ -296,7 +296,11 @@ if __name__ == "__main__":
         all_runtime_cmds = []
         for node_rank, (node_ip, workers) in \
             enumerate(nodes_to_workers_mapping.items()):
-   
+            if node_ip == 'compute.cise.ufl.edu':
+                export_cmd = 'export GLOO_SOCKET_IFNAME=eno1;'
+            elif node_ip == 'localhost':
+                export_cmd = 'export GLOO_SOCKET_IFNAME=enp1s0f0;'
+ 
             docker_cmd = 'nvidia-docker run -d %(mount_directories)s ' \
                          '--net=host --runtime=nvidia ' \
                          '--shm-size 16g %(container)s /bin/bash -c' % {
@@ -326,7 +330,8 @@ if __name__ == "__main__":
                     "nproc_per_node": num_ranks_in_server
                 }
 
-            runtime_cmd_list = runtime_cmd_preamble_list + [launch_module] + runtime_cmd_list
+            #runtime_cmd_list = runtime_cmd_preamble_list + [launch_module] + runtime_cmd_list
+            runtime_cmd_list = [export_cmd] + runtime_cmd_preamble_list + [launch_module] + runtime_cmd_list
             runtime_cmd_list.append('2>&1 | tee %s' % log_file_path)
             runtime_cmd = " ".join(runtime_cmd_list) + "; rm launch.py"
 
