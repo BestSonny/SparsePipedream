@@ -1,10 +1,11 @@
 'log_directory': '/data/panhe/pipedream/runtime/Minkowski/results/test_accuracy'
-'module': 'models.vgg16bn.gpus=2'
+'module': 'models.vgg16bn.gpus=8'
 'data_dir': '/data/panhe/pipedream/runtime/dense_point_cloud/ModelNet40'
-'config_file': 'models/vgg16bn/gpus=2/mp_conf.json'
-'container': 'spare_pipedream:latest'
-'machines': ['localhost:0', 'localhost:1']
-'batch_size': 128
+'config_file': 'models/vgg16bn/gpus=8/hybrid_conf.json'
+'container': 'sparse-pipedream:version2'
+'machines': ['compute.cise.ufl.edu:0', 'compute.cise.ufl.edu:1', 'compute.cise.ufl.edu:2', 'compute.cise.ufl.edu:3', 
+             'localhost:4', 'localhost:5', 'localhost:6', 'localhost:7']
+'batch_size': 64
 'learning_rate': 0.01
 'weight_decay': 0.0005
 'epochs': 90
