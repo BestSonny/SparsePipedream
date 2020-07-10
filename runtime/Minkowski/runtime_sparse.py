@@ -11,7 +11,7 @@ import sys
 import os
 CPU_COUNT = os.cpu_count()
 if 'OMP_NUM_THREADS' in os.environ:
-    CPU_COUNT = int(os.environ['OMP_NUM_THREADS']//4)
+    CPU_COUNT = int(os.environ['OMP_NUM_THREADS'])
 
 import MinkowskiEngine as ME
 import communication_sparse as comm_sparse
