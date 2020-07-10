@@ -16,7 +16,7 @@ import threadsafe_queue
 import os
 CPU_COUNT = os.cpu_count()
 if 'OMP_NUM_THREADS' in os.environ:
-    CPU_COUNT = int(os.environ['OMP_NUM_THREADS']//4)
+    CPU_COUNT = int(os.environ['OMP_NUM_THREADS'])
 
 NCCL='nccl'
 GLOO='gloo'
