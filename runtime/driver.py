@@ -218,7 +218,7 @@ if __name__ == "__main__":
                 "main_with_runtime_folder": main_with_runtime_folder,
         })
     runtime_cmd_preamble_list.append('cd %(working_dir)s/%(main_with_runtime_folder)s; '
-                                     'CUDA_VISIBLE_DEVICES="1,2,3,0" %(python_path)s' % {
+                                     '%(python_path)s' % {
                                          "working_dir": os.getcwd(),
                                          "main_with_runtime_folder":
                                             main_with_runtime_folder,
@@ -324,12 +324,12 @@ if __name__ == "__main__":
             if CONFIG_FILE in configurations:
                 runtime_cmd_list.append('--config_path %s' % (
                     configurations[CONFIG_FILE]))
-                launch_module = '-m launch --nnodes %(nnodes)d --node_rank %(node_rank)d --offset_rank %(offset_rank)d' \
+                launch_module = '-m launch --nnodes %(nnodes)d --node_rank %(node_rank)d --offset_rank %(offset_rank)d ' \
                                 '--node_list %(node_list)s --dist_world_size %(dist_world_size)d' % {
                     "nnodes": len(nodes_to_workers_mapping),
                     "node_rank": node_rank,
                     "node_list": ','.join(map(str, range(num_ranks_in_server))),
-                    "dist_world_size": dist_world_size,
+                    "dist_world_size": dist_world_size+1,
                     "offset_rank": offset_rank,
                 }
 
@@ -344,7 +344,6 @@ if __name__ == "__main__":
                 
                 launch_cmd = 'ssh -n %s -o StrictHostKeyChecking=no \"%s\"' % (node_ip,
                                                                                launch_cmd)
-
             command_history_file.write(launch_cmd + "\n")
 
             if not args.quiet:
@@ -379,7 +378,6 @@ if __name__ == "__main__":
             if worker.ip != 'localhost':
                 launch_cmd = 'ssh -n %s -o StrictHostKeyChecking=no \"%s\"' % (worker.ip,
                                                                                launch_cmd)
-            print (launch_cmd)
             command_history_file.write(launch_cmd + "\n")
 
             if not args.quiet:

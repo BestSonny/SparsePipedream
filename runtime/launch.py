@@ -121,7 +121,7 @@ def parse_args():
     parser.add_argument("--node_rank", type=int, default=0,
                         help="The rank of the node for multi-node distributed "
                              "training")
-    parser.add_argument("--node_list", type=list, default=[1],
+    parser.add_argument("--node_list", type=str, default='1',
                         help="The number of processes to launch on each node, "
                              "for GPU training, this is recommended to be set "
                              "to the number of GPUs in your system so that "
@@ -150,7 +150,9 @@ def main():
     # set PyTorch distributed related environmental variables
     processes = []
 
-    for local_rank in args.node_list:
+    print(args.node_list)
+    node_list = [int(item) for item in args.node_list.split(',')]
+    for local_rank in node_list:
         # each process's rank
         dist_rank = args.offset_rank + local_rank
 
