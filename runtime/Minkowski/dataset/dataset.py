@@ -168,8 +168,7 @@ class ModelNet(object):
                  split: Optional[str] = 'train',
                  categories: Optional[Iterable] = ['bed'],
                  transform: Optional[Callable] = None,
-                 device: Optional[Union[torch.device, str]] = 'cpu',
-                 repeat: Optional[int] = 10):
+                 device: Optional[Union[torch.device, str]] = 'cpu'):
 
         assert split.lower() in ['train', 'test']
 
@@ -181,7 +180,7 @@ class ModelNet(object):
         self.names = []
         self.filepaths = []
         self.cat_idxs = []
-        self.training = split.lower()
+        
 
         if not os.path.exists(basedir):
             raise ValueError('ModelNet was not found at "{0}".'.format(basedir))
@@ -199,14 +198,10 @@ class ModelNet(object):
             self.filepaths += cat_paths
 
     def __len__(self):
-        if self.training == 'train':
-            return len(self.names)*self.repeat
-        else:
-            return len(self.names)
+        return len(self.names)
 
     def __getitem__(self, index):
         """Returns the item at index idx. """
-        index = index % len(self.names)
         data = TriangleMesh.from_off(self.filepaths[index])
         data.to(self.device)
         if self.transform:
@@ -220,7 +215,8 @@ class ModelNetMinkowski(object):
                  total_point: int = 16384,
                  num_points: int = 4096,
                  voxel_size: float = 0.02,
-                 device: Optional[Union[torch.device, str]] = 'cpu'):
+                 device: Optional[Union[torch.device, str]] = 'cpu',
+                 repeat: Optional[int] = 10):
 
         self.basedir = basedir
         self.device = torch.device(device)
@@ -228,6 +224,7 @@ class ModelNetMinkowski(object):
         self.num_points = num_points
         self.total_point = total_point
         self.voxel_size = voxel_size
+        self.training = split.lower()
         print("voxel_size:", voxel_size)
 
         categories = ['sofa', 'cup', 'plant', 'radio',
@@ -263,12 +260,16 @@ class ModelNetMinkowski(object):
 
 
     def __len__(self):
-        return len(self.names)
+        if self.training == 'train':
+            return len(self.names)*self.repeat
+        else:
+            return len(self.names)
 
     def __getitem__(self, index):
         """Returns the item at index idx. """
         data = dict()
         attributes = dict()
+        index = index % len(self.names)
         name = self.names[index]
         point_clouds = self.cache_transforms(name)
         point_clouds = point_clouds - point_clouds.min(dim=0)[0]
