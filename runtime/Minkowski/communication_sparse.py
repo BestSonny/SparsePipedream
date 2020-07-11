@@ -87,7 +87,7 @@ class CommunicationSparseHandler(object):
 
         # Populate ranks_in_server.
         # rank_of_first_gpu_in_server = rank - rank % num_ranks_in_server
-        rank_of_first_gpu_in_server = (rank - accumulate_ranks_in_server) % num_ranks_in_server
+        rank_of_first_gpu_in_server = accumulate_ranks_in_server
         for connected_rank in range(
             rank_of_first_gpu_in_server,
             rank_of_first_gpu_in_server + num_ranks_in_server):
