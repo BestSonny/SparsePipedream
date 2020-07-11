@@ -1,7 +1,7 @@
 'log_directory': '/data/panhe/pipedream/runtime/Minkowski/results/test_accuracy'
-'module': 'models.vgg16bn.gpus=7'
+'module': 'models.vgg16bn.gpus=7_hete'
 'data_dir': '/data/panhe/pipedream/runtime/dense_point_cloud/ModelNet40'
-'config_file': 'models/vgg16bn/gpus=7/hybrid_conf.json'
+'config_file': 'models/vgg16bn/gpus=7_hete/hybrid_conf.json'
 'container': 'sparse-pipedream:version2'
 'machines': ['matlab1.cise.ufl.edu:0', 'matlab1.cise.ufl.edu:1', 'matlab1.cise.ufl.edu:2', 'matlab1.cise.ufl.edu:3','compute.cise.ufl.edu:4', 'compute.cise.ufl.edu:5', 'compute.cise.ufl.edu:6']
 'batch_size': 128
