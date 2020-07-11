@@ -3,8 +3,9 @@
 'data_dir': '/data/panhe/pipedream/runtime/dense_point_cloud/ModelNet40'
 'config_file': 'models/vgg16bn/gpus=7_hete/hybrid_conf.json'
 'container': 'sparse-pipedream:version2'
-'machines': ['matlab1.cise.ufl.edu:0', 'matlab1.cise.ufl.edu:1', 'matlab1.cise.ufl.edu:2', 'matlab1.cise.ufl.edu:3', 'compute.cise.ufl.edu:4', 'compute.cise.ufl.edu:5', 'compute.cise.ufl.edu:6']
-'batch_size': 64
+'machines': ['compute.cise.ufl.edu:4', 'compute.cise.ufl.edu:5', 'compute.cise.ufl.edu:6',
+             'matlab1.cise.ufl.edu:0', 'matlab1.cise.ufl.edu:1', 'matlab1.cise.ufl.edu:2', 'matlab1.cise.ufl.edu:3']
+'batch_size': 128
 'learning_rate': 0.01
 'weight_decay': 0.0005
 'epochs': 90
@@ -16,3 +17,4 @@
 'translation_model': False
 'model_type': 'Minkowski'
 'distributed_backend': 'gloo'
+'voxel_size': 0.02

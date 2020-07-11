@@ -299,7 +299,7 @@ if __name__ == "__main__":
         for node_rank, (node_ip, workers) in enumerate(nodes_to_workers_mapping.items()):
             if node_ip == 'compute.cise.ufl.edu':
                 export_cmd = 'export GLOO_SOCKET_IFNAME=eno1;'
-            elif node_ip == 'localhost':
+            elif node_ip == 'matlab1.cise.ufl.edu':
                 export_cmd = 'export GLOO_SOCKET_IFNAME=enp1s0f0;'
             
             docker_cmd = 'nvidia-docker run -d %(mount_directories)s ' \
