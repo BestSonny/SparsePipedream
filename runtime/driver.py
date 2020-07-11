@@ -298,6 +298,9 @@ if __name__ == "__main__":
     # required number of processes in the same container.
 
     offset_rank = 0
+    max_node_rank = 0
+    for node_rank, (node_ip, workers) in enumerate(nodes_to_workers_mapping.items()):
+        max_node_rank = max(node_rank, max_node_rank)
     if args.launch_single_container:
         all_runtime_cmds = []
         for node_rank, (node_ip, workers) in enumerate(nodes_to_workers_mapping.items()):
@@ -331,7 +334,7 @@ if __name__ == "__main__":
                 launch_module = '-m launch --nnodes %(nnodes)d --node_rank %(node_rank)d --offset_rank %(offset_rank)d ' \
                                 '--node_list %(node_list)s --dist_world_size %(dist_world_size)d' % {
                     "nnodes": len(nodes_to_workers_mapping),
-                    "node_rank": node_rank,
+                    "node_rank": max_node_rank,
                     "node_list": ','.join(map(str, range(num_ranks_in_server))),
                     "dist_world_size": dist_world_size,
                     "offset_rank": offset_rank,
