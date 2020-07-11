@@ -168,7 +168,8 @@ class ModelNet(object):
                  split: Optional[str] = 'train',
                  categories: Optional[Iterable] = ['bed'],
                  transform: Optional[Callable] = None,
-                 device: Optional[Union[torch.device, str]] = 'cpu'):
+                 device: Optional[Union[torch.device, str]] = 'cpu',
+                 repeat: Optional[int] = 10):
 
         assert split.lower() in ['train', 'test']
 
@@ -176,9 +177,11 @@ class ModelNet(object):
         self.transform = transform
         self.device = device
         self.categories = categories
+        self.repeat = repeat
         self.names = []
         self.filepaths = []
         self.cat_idxs = []
+        self.training = split.lower()
 
         if not os.path.exists(basedir):
             raise ValueError('ModelNet was not found at "{0}".'.format(basedir))
@@ -196,10 +199,14 @@ class ModelNet(object):
             self.filepaths += cat_paths
 
     def __len__(self):
-        return len(self.names)
+        if self.training == 'train':
+            return len(self.names)*self.repeat
+        else:
+            return len(self.names)
 
     def __getitem__(self, index):
         """Returns the item at index idx. """
+        index = index % len(self.names)
         data = TriangleMesh.from_off(self.filepaths[index])
         data.to(self.device)
         if self.transform:
