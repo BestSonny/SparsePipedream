@@ -215,7 +215,7 @@ def main():
         master_addr=args.master_addr, rank=args.rank,
         local_rank=args.local_rank,
         num_ranks_in_server=args.num_ranks_in_server,
-        accumulate_ranks_in_server=accumulate_ranks_in_server,
+        accumulate_ranks_in_server=args.accumulate_ranks_in_server,
         verbose_freq=args.verbose_frequency,
         model_type=runtime_sparse.MINKOWSKI,
         enable_recompute=args.recompute)
