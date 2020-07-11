@@ -329,7 +329,7 @@ if __name__ == "__main__":
                     "nnodes": len(nodes_to_workers_mapping),
                     "node_rank": node_rank,
                     "node_list": ','.join(map(str, range(num_ranks_in_server))),
-                    "dist_world_size": dist_world_size+1,
+                    "dist_world_size": dist_world_size,
                     "offset_rank": offset_rank,
                 }
 
