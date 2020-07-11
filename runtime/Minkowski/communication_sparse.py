@@ -214,8 +214,8 @@ class CommunicationSparseHandler(object):
                         threadsafe_queue.Queue())
                     self.num_forward_threads += 1
 
-        print ("Send ranks: ", self.send_ranks)
-        print ("Receive ranks: ", self.receive_ranks)
+        print ("Send ranks: ", self.rank, self.send_ranks)
+        print ("Receive ranks: ", self.rank, self.receive_ranks)
 
         # Queues for ack for forward pass-only runs as a clocking mechanism.
         self.num_ack_threads = 0
@@ -269,8 +269,11 @@ class CommunicationSparseHandler(object):
             assert backward_num_iterations % self.num_ranks_in_previous_stage == 0
             backward_num_iterations = backward_num_iterations // \
                 self.num_ranks_in_previous_stage
+            #print("---debug:, num_iterations_for_helper_threads, changed here")
+            #backward_num_iterations = backward_num_iterations * self.num_ranks_in_stage // \
         else:
             backward_num_iterations = 0
+        #print("---debug, num_iterations_for_helper_threads:", self.rank, forward_num_iterations, backward_num_iterations)
 
         return forward_num_iterations, backward_num_iterations
 
@@ -522,6 +525,7 @@ class CommunicationSparseHandler(object):
             len(self.messaging_schedule):
             self.fwd_messaging_scheduling_row -= 1
             self.bwd_messaging_scheduling_row -= 1
+        #print("---debug, self.messaging_schedule:", self.rank, self.messaging_schedule)
 
     def get_messaging_index(self, sending):
         if sending:
@@ -532,6 +536,7 @@ class CommunicationSparseHandler(object):
             connection_rank = self.messaging_schedule[
                 self.fwd_messaging_scheduling_row][
                     self.fwd_messaging_scheduling_col]
+        #print("---debug, get_messaging_index:", self.rank, sending, connection_rank)
 
         return connection_rank
 
@@ -588,6 +593,7 @@ class CommunicationSparseHandler(object):
             tensor_shape = self.tensor_shapes[tensor_name]
 
         #print("recv_helper_thread_args:", tensor_name, backward, tensor_shape)
+        #print("---debug, recv_helper_thread_args:", self.rank, backward, index, src_rank, len(queue))
         return (queue, self.counter, self.local_rank, tensor_name,
                 src_rank, tag, tensor_shape, dtype, sub_process_group,
                 num_iterations)
@@ -618,6 +624,7 @@ class CommunicationSparseHandler(object):
             queue = self.backward_send_queues[tensor_name][index]
         else:
             queue = self.forward_send_queues[tensor_name][index]
+        #print("---debug, send_helper_thread_args:", self.rank, backward, index, dst_rank, len(queue))
 
         return (queue, self.counter, self.local_rank, tensor_name, self.rank,
                 dst_rank, tag, sub_process_group, num_iterations)
@@ -629,6 +636,7 @@ class CommunicationSparseHandler(object):
                 len(self.backward_receive_queues[tensor_name])
             tensor = self.backward_receive_queues[tensor_name][
                 index].remove()
+            #print("---debug, recv, received tensor in backward:", self.rank, tensor_name, index, len(self.backward_receive_queues[tensor_name][index]))
             return tensor
         else:
             index = self.get_messaging_index(sending=False)
@@ -638,6 +646,7 @@ class CommunicationSparseHandler(object):
                 #change by keke here, SparseTensor only set requires_grad to True, no return
                 #tensor = tensor.requires_grad_()
                 tensor.requires_grad_()
+            #print("---debug, recv, received tensor in forward:", self.rank, tensor_name, index, len(self.forward_receive_queues[tensor_name][index]))
             return tensor
 
     def send(self, tensor_name, tensor, forward_minibatch_id,
@@ -646,10 +655,12 @@ class CommunicationSparseHandler(object):
             index = self.get_messaging_index(sending=True)
             dst_rank = self.receive_ranks[tensor_name][index]
             self.backward_send_queues[tensor_name][index].add(tensor)
+            #print("---debug, send, send tensor in backward:", self.rank, dst_rank, tensor_name, index, len(self.backward_send_queues[tensor_name][index]))
         else:
             index = (forward_minibatch_id + self.rank_in_stage) % \
                 len(self.send_ranks[tensor_name])
             self.forward_send_queues[tensor_name][index].add(tensor)
+            #print("---debug, send, send tensor in forward:", self.rank, tensor_name, index, len(self.forward_send_queues[tensor_name][index]))
 
 def recv_helper_thread(queue, counter, local_rank, tensor_name,
                        src_rank, tag, tensor_shape, dtype,
@@ -667,8 +678,8 @@ def recv_helper_thread(queue, counter, local_rank, tensor_name,
                 tensor_name, src_rank, tensor_shape=tensor_shape,
                 dtype=dtype, tag=tag,
                 sub_process_group=sub_process_group)
-        #print("recv_helper_thread, tensor_name:", tensor_name, src_rank)
         queue.add(tensor)
+        #print("---debug, recv_helper_thread, tensor_name:", tensor_name, src_rank, num_iterations, i, len(queue))
     counter.decrement()
 
 def send_helper_thread(queue, counter, local_rank, tensor_name,
@@ -686,6 +697,7 @@ def send_helper_thread(queue, counter, local_rank, tensor_name,
             _send(tensor, tensor_name, src_rank, dst_rank,
               tag=tag,
               sub_process_group=sub_process_group)
+        #print("---debug, send_helper_thread, tensor_name:", tensor_name, src_rank, dst_rank, num_iterations, i)
     counter.decrement()
 
 def _recv(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,

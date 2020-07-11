@@ -80,6 +80,9 @@ class Profiling(object):
                 backward_i += 1
             forward_time = (forward_record_item[3] - forward_record_item[1])
             backward_time = (backward_record_item[3] - backward_record_item[1])
+            if forward_time < 0 or backward_time < 0:
+                print("something wrong makes time<0, forward_time:", forward_time, "backward_time:", backward_time)
+                continue
             processed_times.append((forward_record_item[0],
                                     forward_record_item[1] * 1000 * 1000,
                                     forward_time * 1000 * 1000, forward_record_item[2],

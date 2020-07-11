@@ -111,7 +111,7 @@ def compute_partitioning(server, gpu_list, compute_times, activation_sizes, para
                                 output_activation_sizes[j]) / (bandwidth * m_prime)
 
                         
-                        machine_list = gpu_list[m-m_prime + 1:]
+                        machine_list = gpu_list[m-m_prime + 1 : m+1]
                         last_stage_time = get_compute_time(server, unique_gpu_compute_list_l2h, machine_list, k+1, j) #compute_times[k+1][j]
                         if last_stage_time is None:
                             continue
@@ -138,11 +138,12 @@ def compute_partitioning(server, gpu_list, compute_times, activation_sizes, para
                                 pipeline_time = max(pipeline_time, output_transfer_time)
                         if min_pipeline_time is None or min_pipeline_time > pipeline_time:
                             optimal_split = (k, m-m_prime)
-                            optimal_machines_list = gpu_list[m-m_prime + 1 :] #m_prime
+                            optimal_machines_list = gpu_list[m-m_prime + 1 : m+1] #m_prime
                             min_pipeline_time = pipeline_time
                             parameter_size = parameter_sizes[i][k]
                 #A[i][j][m] = (min_pipeline_time, optimal_split, optimal_num_machines)
                 A[i][j][m] = (min_pipeline_time, optimal_split, optimal_machines_list)
+                print("A[i][j][m]:", i, j, m, A[i][j][m])
 
     return A
 
@@ -251,6 +252,8 @@ def analyze_partitioning(A, server, start, end, network_bandwidth, #num_machines
         if prev_split > 0:
             #time = states[splits[i]-1].compute_time - states[prev_split-1].compute_time
             time = server.optimal_partition[prev_split-1][splits[i]-1][replication_factors[i][0]-1][0]
+            if replication_factors[i][0] == 1:
+                time = server.dict_gpu[slowest_gpus[i]].compute_times[prev_split-1][splits[i]-1]
         else:
             #time = states[splits[i]-1].compute_time
             time = server.optimal_partition[0][splits[i]-1][replication_factors[i][0]-1][0]
@@ -281,7 +284,7 @@ def main(server_config_file, network_bandwidths, memory_size,
             #print("GPU name:", gpu.name, "GPU compute time:", gpu.compute_times)
         server.create_gpu_list_based_count()
         server.create_gpu_list_based_compute()
-        server.set_partition_mode(mode='fastFirst')
+        server.set_partition_mode(mode='numberFirst') #fastFirst / numberFirst
         if verbose:
             print("server detail:", server.name, server.unique_gpu_compute_list_l2h, server.unique_gpu_compute_list_h2l, server.gpu_compute_ability_list_h2l, server.gpu_count_list_h2l, server.compute_partition_list)
 
