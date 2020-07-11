@@ -298,9 +298,7 @@ if __name__ == "__main__":
     # required number of processes in the same container.
 
     offset_rank = 0
-    max_node_rank = 0
-    for node_rank, (node_ip, workers) in enumerate(nodes_to_workers_mapping.items()):
-        max_node_rank = max(node_rank, max_node_rank)
+    accumulate_ranks_in_server = 0
     if args.launch_single_container:
         all_runtime_cmds = []
         for node_rank, (node_ip, workers) in enumerate(nodes_to_workers_mapping.items()):
@@ -325,7 +323,9 @@ if __name__ == "__main__":
                 if not disable_gpu_gpu_communication else 1
 
             runtime_cmd_list = [common_runtime_cmd,
-                                '--num_ranks_in_server %d' % num_ranks_in_server]
+                                '--num_ranks_in_server %d' % num_ranks_in_server,
+                                '--accumulate_ranks_in_server %d' % accumulate_ranks_in_server]
+            accumulate_ranks_in_server += num_ranks_in_server
 
             launch_module = ''
             if CONFIG_FILE in configurations:
@@ -334,7 +334,7 @@ if __name__ == "__main__":
                 launch_module = '-m launch --nnodes %(nnodes)d --node_rank %(node_rank)d --offset_rank %(offset_rank)d ' \
                                 '--node_list %(node_list)s --dist_world_size %(dist_world_size)d' % {
                     "nnodes": len(nodes_to_workers_mapping),
-                    "node_rank": max_node_rank,
+                    "node_rank": node_rank,
                     "node_list": ','.join(map(str, range(num_ranks_in_server))),
                     "dist_world_size": dist_world_size,
                     "offset_rank": offset_rank,
