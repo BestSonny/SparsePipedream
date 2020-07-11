@@ -176,7 +176,6 @@ class ModelNet(object):
         self.transform = transform
         self.device = device
         self.categories = categories
-        self.repeat = repeat
         self.names = []
         self.filepaths = []
         self.cat_idxs = []
@@ -216,7 +215,7 @@ class ModelNetMinkowski(object):
                  num_points: int = 4096,
                  voxel_size: float = 0.02,
                  device: Optional[Union[torch.device, str]] = 'cpu',
-                 repeat: Optional[int] = 10):
+                 repeat: Optional[int] = 8):
 
         self.basedir = basedir
         self.device = torch.device(device)
@@ -225,6 +224,7 @@ class ModelNetMinkowski(object):
         self.total_point = total_point
         self.voxel_size = voxel_size
         self.training = split.lower()
+        self.repeat = repeat
         print("voxel_size:", voxel_size)
 
         categories = ['sofa', 'cup', 'plant', 'radio',
