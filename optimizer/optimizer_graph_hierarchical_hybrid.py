@@ -136,7 +136,9 @@ def compute_partitioning(server, gpu_list, compute_times, activation_sizes, para
                             pipeline_time = max(pipeline_time, input_transfer_time)
                             if output_transfer_time is not None:
                                 pipeline_time = max(pipeline_time, output_transfer_time)
-                        if min_pipeline_time is None or min_pipeline_time > pipeline_time:
+                        #if min_pipeline_time is None or min_pipeline_time > pipeline_time:
+                        if min_pipeline_time is None or (min_pipeline_time > pipeline_time
+                            and (m_prime%2 == 0 or m_prime == 1) and m-m_prime >= m_prime):
                             optimal_split = (k, m-m_prime)
                             optimal_machines_list = gpu_list[m-m_prime + 1 : m+1] #m_prime
                             min_pipeline_time = pipeline_time
