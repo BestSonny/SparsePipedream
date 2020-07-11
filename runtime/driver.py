@@ -28,6 +28,7 @@ POINT_CLOUD = 'point_cloud'
 # Optional configurations fields.
 DISTRIBUTED_BACKEND = 'distributed_backend'
 BATCH_SIZE = 'batch_size'
+EVAL_BATCH_SIZE = 'eval_batch_size'
 LEARNING_RATE = 'learning_rate'
 LEARNING_RATE_POLICY = 'learning_rate_policy'
 WEIGHT_DECAY = 'weight_decay'
@@ -240,6 +241,9 @@ if __name__ == "__main__":
     # Add additional arguments.
     if BATCH_SIZE in configurations:
         runtime_cmd_list.append('-b %d' % configurations[BATCH_SIZE])
+    
+    if EVAL_BATCH_SIZE in configurations:
+        runtime_cmd_list.append('-eb %d' % configurations[EVAL_BATCH_SIZE])
 
     if LEARNING_RATE in configurations:
         runtime_cmd_list.append('--lr %f' % configurations[LEARNING_RATE])
