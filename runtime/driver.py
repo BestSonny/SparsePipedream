@@ -309,7 +309,7 @@ if __name__ == "__main__":
             
             docker_cmd = 'nvidia-docker run -d %(mount_directories)s ' \
                          '--net=host --runtime=nvidia ' \
-                         '%(container)s /bin/bash -c' % {
+                         '--shm-size 32g %(container)s /bin/bash -c' % {
                 "container": configurations[CONTAINER],
                 "mount_directories":
                     " ".join(["-v %s:%s" % (x, x)
@@ -359,7 +359,7 @@ if __name__ == "__main__":
         for rank, worker in enumerate(workers):
             docker_cmd = 'nvidia-docker run -d %(mount_directories)s ' \
                          '--net=host --runtime=nvidia ' \
-                         '--ipc=host %(container)s /bin/bash -c' % {
+                         '--ipc=host --shm-size 32g %(container)s /bin/bash -c' % {
                 "container": configurations[CONTAINER],
                 "mount_directories":
                     " ".join(["-v %s:%s" % (x, x)
