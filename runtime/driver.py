@@ -164,7 +164,7 @@ if __name__ == "__main__":
             nodes_to_workers_mapping[machine_info[0]] = []
         nodes_to_workers_mapping[machine_info[0]].append(workers[-1])
     assert len(workers) == len(configurations[MACHINES])
-
+    dist_world_size = len(workers)
     # Create output directory.
     output_dir = create_output_folder(conf=configurations)
 
@@ -292,18 +292,19 @@ if __name__ == "__main__":
 
     # If launching in a single container per node, use launch utility to spawn
     # required number of processes in the same container.
+
+    offset_rank = 0
     if args.launch_single_container:
         all_runtime_cmds = []
-        for node_rank, (node_ip, workers) in \
-            enumerate(nodes_to_workers_mapping.items()):
+        for node_rank, (node_ip, workers) in enumerate(nodes_to_workers_mapping.items()):
             if node_ip == 'compute.cise.ufl.edu':
                 export_cmd = 'export GLOO_SOCKET_IFNAME=eno1;'
             elif node_ip == 'localhost':
                 export_cmd = 'export GLOO_SOCKET_IFNAME=enp1s0f0;'
- 
+            
             docker_cmd = 'nvidia-docker run -d %(mount_directories)s ' \
                          '--net=host --runtime=nvidia ' \
-                         '--shm-size 16g %(container)s /bin/bash -c' % {
+                         '%(container)s /bin/bash -c' % {
                 "container": configurations[CONTAINER],
                 "mount_directories":
                     " ".join(["-v %s:%s" % (x, x)
@@ -313,7 +314,7 @@ if __name__ == "__main__":
             log_file_path = '%s/output.log.%d' % (output_dir, node_rank)
 
             num_ranks_in_server = \
-                machine_to_workers_map[worker.ip] \
+                machine_to_workers_map[node_ip] \
                 if not disable_gpu_gpu_communication else 1
 
             runtime_cmd_list = [common_runtime_cmd,
@@ -323,23 +324,27 @@ if __name__ == "__main__":
             if CONFIG_FILE in configurations:
                 runtime_cmd_list.append('--config_path %s' % (
                     configurations[CONFIG_FILE]))
-                launch_module = '-m launch --nnodes %(nnodes)d --node_rank %(node_rank)d ' \
-                                '--nproc_per_node %(nproc_per_node)d' % {
+                launch_module = '-m launch --nnodes %(nnodes)d --node_rank %(node_rank)d --offset_rank %(offset_rank)d' \
+                                '--node_list %(node_list)s --dist_world_size %(dist_world_size)d' % {
                     "nnodes": len(nodes_to_workers_mapping),
                     "node_rank": node_rank,
-                    "nproc_per_node": num_ranks_in_server
+                    "node_list": ','.join(map(str, range(num_ranks_in_server))),
+                    "dist_world_size": dist_world_size,
+                    "offset_rank": offset_rank,
                 }
 
-            #runtime_cmd_list = runtime_cmd_preamble_list + [launch_module] + runtime_cmd_list
+            offset_rank += num_ranks_in_server
+    
             runtime_cmd_list = [export_cmd] + runtime_cmd_preamble_list + [launch_module] + runtime_cmd_list
             runtime_cmd_list.append('2>&1 | tee %s' % log_file_path)
             runtime_cmd = " ".join(runtime_cmd_list) + "; rm launch.py"
 
             launch_cmd = '%s \'%s\'' % (docker_cmd, runtime_cmd)
             if node_ip != 'localhost' and node_ip != '127.0.0.1':
+                
                 launch_cmd = 'ssh -n %s -o StrictHostKeyChecking=no \"%s\"' % (node_ip,
                                                                                launch_cmd)
-            print(launch_cmd)
+
             command_history_file.write(launch_cmd + "\n")
 
             if not args.quiet:
