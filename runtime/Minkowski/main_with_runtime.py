@@ -37,11 +37,12 @@ import adam
 import sgd
 
 #torch.autograd.set_detect_anomaly(True)
-torch.manual_seed(0)
+torch.manual_seed(100)
 import numpy as np
-np.random.seed(0)
+np.random.seed(100)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+print('torch manual seed:', 100, 'np seed:', 100)
 
 parser = argparse.ArgumentParser(description='PyTorch Pipeline Minkowski Training')
 parser.add_argument('--data_dir', type=str, required=True, help="dataset path")
@@ -360,8 +361,7 @@ def train(train_loader, r, optimizer, epoch):
     top5 = AverageMeter()
 
     # switch to train mode
-    #n = r.num_iterations(loader_size=len(train_loader))
-    n = r.num_iterations(loader_size=(len(train_loader)//4 * 4)) # changed here for pipedream
+    n = r.num_iterations(loader_size=len(train_loader))
     print("loader_size:", len(train_loader), "actual batches:", n, "batch_size:", args.batch_size)
     if args.num_minibatches is not None:
         n = min(n, args.num_minibatches)
@@ -458,8 +458,7 @@ def validate(val_loader, r, epoch):
     top5 = AverageMeter()
 
     # switch to evaluate mode
-    #n = r.num_iterations(loader_size=len(val_loader))
-    n = r.num_iterations(loader_size=(len(val_loader)//4 * 4)) # changed here for pipedream
+    n = r.num_iterations(loader_size=len(val_loader))
     print("validation loader_size:", len(val_loader), "actual batches:", n, "batch_size:", args.batch_size)
     if args.num_minibatches is not None:
         n = min(n, args.num_minibatches)
