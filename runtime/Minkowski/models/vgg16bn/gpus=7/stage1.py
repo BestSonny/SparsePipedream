@@ -30,7 +30,7 @@ class Stage1(torch.nn.Module):
         self.layer8 = ME.MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         self.layer9 = ME.MinkowskiReLU()
         self.layer10 = ME.MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)
-        self.layer11 = ME.MinkowskiGlobalMaxPooling
+        self.layer11 = ME.MinkowskiGlobalMaxPooling()
         self.layer12 = ME.MinkowskiLinear(in_features=512, out_features=4096, bias=True)
         self.layer13 = ME.MinkowskiReLU()
         self.layer14 = Dropout(p=0.5, inplace=False)
