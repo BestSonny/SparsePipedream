@@ -304,33 +304,21 @@ def main():
                 rank=args.rank)
             distributed_sampler = True
 
-    batch_size = args.batch_size
-    while True:
-        train_loader = torch.utils.data.DataLoader(train_dataset,
-                                            batch_size=batch_size,
-                                            shuffle=(train_sampler is None), #True,
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                                        batch_size=args.batch_size,
+                                        shuffle=(train_sampler is None), #True,
+                                        num_workers=int(args.workers),
+                                        pin_memory=True,
+                                        sampler=train_sampler,
+                                        collate_fn=dataset.collate_pointcloud_fn)
+
+    val_loader = torch.utils.data.DataLoader(val_dataset,
+                                            batch_size=args.batch_size,
+                                            shuffle=False,
                                             num_workers=int(args.workers),
                                             pin_memory=True,
-                                            sampler=train_sampler,
+                                            sampler=val_sampler,
                                             collate_fn=dataset.collate_pointcloud_fn)
-        if len(train_loader) % 2 != 0:
-            batch_size = int(batch_size/2)
-        else:
-            break
-
-    batch_size = args.batch_size
-    while True:
-        val_loader = torch.utils.data.DataLoader(val_dataset,
-                                                batch_size=batch_size,
-                                                shuffle=False,
-                                                num_workers=int(args.workers),
-                                                pin_memory=True,
-                                                sampler=val_sampler,
-                                                collate_fn=dataset.collate_pointcloud_fn)
-        if len(val_loader) % 2 != 0:
-            batch_size = int(batch_size/2)
-        else:
-            break
     # if checkpoint is loaded, start by running validation
     if args.resume:
         assert args.start_epoch > 0
@@ -471,7 +459,7 @@ def validate(val_loader, r, epoch):
     top5 = AverageMeter()
 
     # switch to evaluate mode
-    n = r.num_iterations(loader_size=len(val_loader))
+    n = r.num_iterations(loader_size=len(val_loader))//2*2
     print("validation loader_size:", len(val_loader), "actual batches:", n, "batch_size:", args.batch_size)
     if args.num_minibatches is not None:
         n = min(n, args.num_minibatches)
