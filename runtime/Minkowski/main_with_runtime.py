@@ -58,7 +58,7 @@ parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
 parser.add_argument('-b', '--batch-size', default=64, type=int,
                     metavar='N', help='mini-batch size (default: 64)')
-parser.add_argument('--eval-batch-size', default=100, type=int,
+parser.add_argument('-eb', '--eval-batch-size', default=64, type=int,
                     help='eval mini-batch size (default: 100)')
 parser.add_argument('--lr', '--learning-rate', default=0.01, type=float,
                     metavar='LR', help='initial learning rate')
@@ -311,13 +311,14 @@ def main():
                                         pin_memory=True,
                                         sampler=train_sampler,
                                         collate_fn=dataset.collate_pointcloud_fn)
+
     val_loader = torch.utils.data.DataLoader(val_dataset,
-                                             batch_size=args.batch_size,
-                                             shuffle=False,
-                                             num_workers=int(args.workers),
-                                             pin_memory=True,
-                                             sampler=val_sampler,
-                                             collate_fn=dataset.collate_pointcloud_fn)
+                                            batch_size=args.eval_batch_size,
+                                            shuffle=False,
+                                            num_workers=int(args.workers),
+                                            pin_memory=True,
+                                            sampler=val_sampler,
+                                            collate_fn=dataset.collate_pointcloud_fn)
     # if checkpoint is loaded, start by running validation
     if args.resume:
         assert args.start_epoch > 0
@@ -459,7 +460,7 @@ def validate(val_loader, r, epoch):
 
     # switch to evaluate mode
     n = r.num_iterations(loader_size=len(val_loader))
-    print("validation loader_size:", len(val_loader), "actual batches:", n, "batch_size:", args.batch_size)
+    print("validation loader_size:", len(val_loader), "actual batches:", n, "batch_size:", args.eval_batch_size)
     if args.num_minibatches is not None:
         n = min(n, args.num_minibatches)
     r.eval(n)
@@ -492,9 +493,9 @@ def validate(val_loader, r, epoch):
 
                 # measure accuracy and record loss
                 prec1, prec5 = accuracy(output.F, target, topk=(1, 5))
-                losses.update(loss.item(), args.batch_size)
-                top1.update(prec1[0], args.batch_size)
-                top5.update(prec5[0], args.batch_size)
+                losses.update(loss.item(), args.eval_batch_size)
+                top1.update(prec1[0], args.eval_batch_size)
+                top5.update(prec5[0], args.eval_batch_size)
 
                 # measure elapsed time
                 batch_time.update(time.time() - end)

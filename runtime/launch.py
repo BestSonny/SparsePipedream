@@ -121,11 +121,13 @@ def parse_args():
     parser.add_argument("--node_rank", type=int, default=0,
                         help="The rank of the node for multi-node distributed "
                              "training")
-    parser.add_argument("--nproc_per_node", type=int, default=1,
+    parser.add_argument("--node_list", type=str, default='1',
                         help="The number of processes to launch on each node, "
                              "for GPU training, this is recommended to be set "
                              "to the number of GPUs in your system so that "
                              "each process can be bound to a single GPU.")
+    parser.add_argument("--dist_world_size", type=int, default=1)
+    parser.add_argument("--offset_rank", type=int, default=1)
 
     # positional
     parser.add_argument("training_script", type=str,
@@ -143,14 +145,16 @@ def main():
     args = parse_args()
 
     # world size in terms of number of processes
-    dist_world_size = args.nproc_per_node * args.nnodes
+    dist_world_size = args.dist_world_size
 
     # set PyTorch distributed related environmental variables
     processes = []
 
-    for local_rank in range(0, args.nproc_per_node):
+    print(args.node_list)
+    node_list = [int(item) for item in args.node_list.split(',')]
+    for local_rank in node_list:
         # each process's rank
-        dist_rank = args.nproc_per_node * args.node_rank + local_rank
+        dist_rank = args.offset_rank + local_rank
 
         # spawn the processes
         cmd = [sys.executable,
