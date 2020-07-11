@@ -56,7 +56,7 @@ class StageRuntimeSparse:
                  training_tensor_shapes, eval_tensor_shapes,
                  training_tensor_dtypes, inputs_module_destinations,
                  target_tensor_names, configuration_maps, master_addr,
-                 rank, local_rank, num_ranks_in_server, verbose_freq,
+                 rank, local_rank, num_ranks_in_server, accumulate_ranks_in_server, verbose_freq,
                  model_type, enable_recompute=False):
         # Metadata needed for forward and backward pass within this stage.
         self.tensors = []
@@ -71,7 +71,7 @@ class StageRuntimeSparse:
         self.target_tensor_names = target_tensor_names
 
         self.initialize(model, inputs_module_destinations, configuration_maps,
-                        master_addr, rank, local_rank, num_ranks_in_server)
+                        master_addr, rank, local_rank, num_ranks_in_server, accumulate_ranks_in_server)
 
         self.verbose_freq = verbose_freq
         self.forward_only = False
@@ -89,7 +89,7 @@ class StageRuntimeSparse:
 
     def initialize(self, model, inputs_module_destinations,
                    configuration_maps, master_addr, rank,
-                   local_rank, num_ranks_in_server):
+                   local_rank, num_ranks_in_server, accumulate_ranks_in_server):
         self.send_ranks = {}
         self.receive_ranks = {}
         self.rank = rank
@@ -195,6 +195,7 @@ class StageRuntimeSparse:
                 rank=self.rank,
                 local_rank=self.local_rank,
                 num_ranks_in_server=num_ranks_in_server,
+                accumulate_ranks_in_server=accumulate_ranks_in_server,
                 world_size=self.num_ranks,
                 fp16=self.fp16,
                 backend=self.distributed_backend)

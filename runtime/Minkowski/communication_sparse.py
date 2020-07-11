@@ -49,7 +49,7 @@ class CommunicationSparseHandler(object):
     For stages on same machine, use broadcast.
     """
     def __init__(self, master_addr, master_port, rank,
-                 local_rank, num_ranks_in_server,
+                 local_rank, num_ranks_in_server, accumulate_ranks_in_server,
                  world_size, fp16, backend):
         """ Set up process groups.
 
@@ -59,9 +59,11 @@ class CommunicationSparseHandler(object):
         self.local_rank = local_rank
         self.backend = backend
         self.num_ranks_in_server = num_ranks_in_server
+        self.accumulate_ranks_in_server = accumulate_ranks_in_server
         self.world_size = world_size
         self.fp16 = fp16
         assert num_ranks_in_server > 0
+        assert accumulate_ranks_in_server >= 0
 
         # Initialize the distributed environment.
         os.environ['MASTER_ADDR'] = master_addr
@@ -84,7 +86,8 @@ class CommunicationSparseHandler(object):
         self.process_groups = {}
 
         # Populate ranks_in_server.
-        rank_of_first_gpu_in_server = rank - rank % num_ranks_in_server
+        # rank_of_first_gpu_in_server = rank - rank % num_ranks_in_server
+        rank_of_first_gpu_in_server = accumulate_ranks_in_server
         for connected_rank in range(
             rank_of_first_gpu_in_server,
             rank_of_first_gpu_in_server + num_ranks_in_server):
