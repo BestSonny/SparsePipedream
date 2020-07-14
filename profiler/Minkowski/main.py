@@ -426,11 +426,16 @@ def profile_train(train_loader, model, criterion, optimizer):
         layer_type = str(layer_timestamps[0][i][0])
         layer_forward_time_sum = 0.0
         layer_backward_time_sum = 0.0
+        count = 0
         for j in range(len(layer_timestamps)):
+            if(layer_timestamps[j][i][2] < 0 or layer_timestamps[j][i][5] < 0):
+                 print("Something went wrong, have negative time")
+                 continue
             layer_forward_time_sum += (layer_timestamps[j][i][2] / 1000)
             layer_backward_time_sum += (layer_timestamps[j][i][5] / 1000)
-        layer_times.append((layer_type, layer_forward_time_sum / len(layer_timestamps),
-                                    layer_backward_time_sum / len(layer_timestamps)))
+            count += 1
+        layer_times.append((layer_type, layer_forward_time_sum / count, # len(layer_timestamps),
+                                    layer_backward_time_sum / count)) # len(layer_timestamps)))
         if args.verbose:
             print(layer_times[-1][0], layer_times[-1][1], layer_times[-1][2])
         tot_accounted_time += (layer_times[-1][1] + layer_times[-1][2])
