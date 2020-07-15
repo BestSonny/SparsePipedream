@@ -42,6 +42,7 @@ SYNTHETIC_DATA = 'synthetic_data'
 RECOMPUTE = 'recompute'
 MACROBATCH = 'macrobatch'
 VOXEL_SIZE = 'voxel_size'
+SAMPLE_RATIO = 'sample_ratio'
 
 
 '''
@@ -219,7 +220,8 @@ if __name__ == "__main__":
                 "main_with_runtime_folder": main_with_runtime_folder,
         })
     runtime_cmd_preamble_list.append('cd %(working_dir)s/%(main_with_runtime_folder)s; '
-                                     '%(python_path)s' % {
+                                     #'%(python_path)s' % {
+                                     'CUDA_VISIBLE_DEVICES="1,2,3,0" %(python_path)s' % {
                                          "working_dir": os.getcwd(),
                                          "main_with_runtime_folder":
                                             main_with_runtime_folder,
@@ -291,6 +293,8 @@ if __name__ == "__main__":
             runtime_cmd_list.append('--voxel_size %f' % configurations[VOXEL_SIZE])
         elif configurations[MODEL_TYPE] == POINT_CLOUD:
             runtime_cmd_list.append('--voxel_size %d' % configurations[VOXEL_SIZE])
+    if SAMPLE_RATIO in configurations:
+        runtime_cmd_list.append('--sample_ratio %f' % configurations[SAMPLE_RATIO])
 
     common_runtime_cmd = " ".join(runtime_cmd_list)
 
@@ -306,10 +310,12 @@ if __name__ == "__main__":
                 export_cmd = 'export GLOO_SOCKET_IFNAME=eno1;'
             elif node_ip == 'matlab1.cise.ufl.edu':
                 export_cmd = 'export GLOO_SOCKET_IFNAME=enp1s0f0;'
+            else:
+                export_cmd = ''
             
             docker_cmd = 'nvidia-docker run -d %(mount_directories)s ' \
                          '--net=host --runtime=nvidia ' \
-                         '--shm-size 32g %(container)s /bin/bash -c' % {
+                         '--shm-size 64g %(container)s /bin/bash -c' % {
                 "container": configurations[CONTAINER],
                 "mount_directories":
                     " ".join(["-v %s:%s" % (x, x)

@@ -37,12 +37,12 @@ import adam
 import sgd
 
 #torch.autograd.set_detect_anomaly(True)
-torch.manual_seed(100)
+torch.manual_seed(0)
 import numpy as np
-np.random.seed(100)
+np.random.seed(0)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-print('torch manual seed:', 100, 'np seed:', 100)
+print('torch manual seed:', 0, 'np seed:', 0)
 
 parser = argparse.ArgumentParser(description='PyTorch Pipeline Minkowski Training')
 parser.add_argument('--data_dir', type=str, required=True, help="dataset path")
@@ -112,6 +112,7 @@ parser.add_argument('--recompute', action='store_true',
 parser.add_argument('--macrobatch', action='store_true',
                     help='Macrobatch updates to save memory')
 parser.add_argument('--voxel_size', type=float, default=0.05)
+parser.add_argument('--sample_ratio', type=float, default=1.0)
 parser.add_argument('--dataset', default='kaolinmodelnetvoxeldataset', type=str,
                     help='dataset name, modelnet40 or shapenet')
 
@@ -288,7 +289,8 @@ def main():
     elif args.dataset == 'kaolinmodelnetvoxeldataset':
         train_dataset = ModelNetMinkowski(basedir=args.data_dir,
                                           split='train',
-                                          voxel_size=args.voxel_size)
+                                          voxel_size=args.voxel_size,
+                                          sample_ratio=args.sample_ratio)
         val_dataset = ModelNetMinkowski(basedir=args.data_dir,
                                          split='test',
                                          voxel_size=args.voxel_size)
