@@ -50,7 +50,8 @@ def summary(model, module_whitelist, model_input, verbose, device="cuda"):
 
             params = 0
             for name, param in module.named_parameters():
-                if 'weight' in name:
+                #if 'weight' in name:
+                if 'weight' in name or 'kernel' in name:
                     params += torch.prod(torch.LongTensor(list(param.size())))
                     summary[-1]['trainable'] = param.requires_grad
                 elif 'bias' in name:
