@@ -214,8 +214,9 @@ class ModelNetMinkowski(object):
                  total_point: int = 16384,
                  num_points: int = 4096,
                  voxel_size: float = 0.02,
+                 sample_ratio: float = 1.0,
                  device: Optional[Union[torch.device, str]] = 'cpu',
-                 repeat: Optional[int] = 8):
+                 repeat: Optional[int] = 1):
 
         self.basedir = basedir
         self.device = torch.device(device)
@@ -225,7 +226,8 @@ class ModelNetMinkowski(object):
         self.voxel_size = voxel_size
         self.training = split.lower()
         self.repeat = repeat
-        print("voxel_size:", voxel_size)
+        self.sample_ratio = sample_ratio
+        print("voxel_size:", voxel_size, "num_points:", num_points, "sample_ratio:", sample_ratio)
 
         categories = ['sofa', 'cup', 'plant', 'radio',
                       'sink', 'bookshelf', 'toilet', 'lamp', 
@@ -275,7 +277,10 @@ class ModelNetMinkowski(object):
         point_clouds = point_clouds - point_clouds.min(dim=0)[0]
         scale = point_clouds.max(dim=0)[0] - point_clouds.min(dim=0)[0]
         point_clouds = (point_clouds -point_clouds.min(dim=0)[0])/(scale*1.0)
-        choice = np.random.choice(point_clouds.shape[0], self.num_points, replace=False)
+        if self.training == 'train':
+            choice = np.random.choice(point_clouds.shape[0], int(self.num_points*self.sample_ratio), replace=False)
+        else:
+            choice = np.random.choice(point_clouds.shape[0], self.num_points, replace=False)
         point_clouds = point_clouds[choice]
         quantized_coords = point_clouds.div(self.voxel_size).floor()
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
