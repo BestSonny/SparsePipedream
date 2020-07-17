@@ -39,7 +39,7 @@ def compute_partitioning(compute_times, activation_sizes, parameter_sizes,
                                               (cum_activation_size + cum_parameter_size)
                 if use_memory_constraint and stashed_data_size > memory_size:
                     continue
-                data_parallel_communication_time = (4 * m * cum_parameter_size) / (bandwidth * (m+1))
+                data_parallel_communication_time = (2 * m * cum_parameter_size) / (bandwidth * (m+1))
                 data_parallel_communication_time /= num_machines_within_machine
 
                 if cum_compute_time is None:
@@ -78,7 +78,7 @@ def compute_partitioning(compute_times, activation_sizes, parameter_sizes,
                         if use_memory_constraint and stashed_data_size > memory_size:
                             continue
                         last_stage_time = sum([last_stage_time,
-                                               ((4 * (m_prime - 1) *
+                                               ((2 * (m_prime - 1) *
                                                 last_stage_parameter_size) / (bandwidth * m_prime))])
                         last_stage_time /= m_prime
 
@@ -121,7 +121,7 @@ def analyze_partitioning(A, states, start, end, network_bandwidth, num_machines,
         parameter_size = states[prev_split-1].parameter_size - \
             states[next_split[0]].parameter_size
 
-        dp_communication_time = (4 * (num_machines_used - 1) * parameter_size) \
+        dp_communication_time = (2 * (num_machines_used - 1) * parameter_size) \
             / (network_bandwidth * num_machines_used)
         pp_communication_time_input = (
             2.0 * states[next_split[0]].output_activation_size *
@@ -157,7 +157,7 @@ def analyze_partitioning(A, states, start, end, network_bandwidth, num_machines,
     remaining_machines_left -= num_machines_used
     compute_time = states[prev_split-1].compute_time
     parameter_size = states[prev_split-1].parameter_size
-    dp_communication_time = ((4 * (num_machines_used - 1) * parameter_size) /
+    dp_communication_time = ((2 * (num_machines_used - 1) * parameter_size) /
                              (network_bandwidth * num_machines_used))
     compute_time /= num_machines_used
     dp_communication_time /= num_machines_used
@@ -351,7 +351,7 @@ def main(all_num_machines, profile_filename, network_bandwidths, memory_size,
     num_machines_in_machine = 1
     for (num_machines, network_bandwidth) in zip(all_num_machines, network_bandwidths):
         data_parallel_communication_time = (
-            (4 * (num_machines - 1) * total_parameter_size) /
+            (2 * (num_machines - 1) * total_parameter_size) /
             (network_bandwidth * num_machines)) / num_machines_in_machine
         data_parallel_total_time = sum(
             [data_parallel_total_time, data_parallel_communication_time]) / num_machines
@@ -382,7 +382,7 @@ if __name__ == '__main__':
                         help="Number of machines available")
     parser.add_argument('-f', "--profile_filename", required=True,
                         help="Profile filename")
-    parser.add_argument('-b', "--network_bandwidths", type=float, nargs='+', default=[1000000000],
+    parser.add_argument('-b', "--network_bandwidths", type=float, nargs='+', default=[100000000], #100MB
                         help="Available network bandwidth in bytes/sec")
     parser.add_argument('-s', "--memory_size", type=float, default=16000000000,
                         help="Amount of memory available on each machine")

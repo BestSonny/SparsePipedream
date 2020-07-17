@@ -293,7 +293,8 @@ def main():
                                           sample_ratio=args.sample_ratio)
         val_dataset = ModelNetMinkowski(basedir=args.data_dir,
                                          split='test',
-                                         voxel_size=args.voxel_size)
+                                         voxel_size=args.voxel_size,
+                                         sample_ratio=args.sample_ratio)
 
     distributed_sampler = False
     train_sampler = None
