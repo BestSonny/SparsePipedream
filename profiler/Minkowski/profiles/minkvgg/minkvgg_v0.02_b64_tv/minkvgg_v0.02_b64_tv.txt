@@ -1,0 +1,487 @@
+Profiling model mink-vgg16_bn, voxel size: 0.02  batch size 64
+voxel_size: 0.02
+----------------------------------------------------------------
+Layer Type	Output Shape	Param #
+================================================================
+MinkowskiConvolution(in_channels=1, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[204634, 64]	1,728
+MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[204634, 64]	128
+MinkowskiReLU()	[204634, 64]	0
+MinkowskiConvolution(in_channels=64, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[204634, 64]	110,592
+MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[204634, 64]	128
+MinkowskiReLU()	[204634, 64]	0
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)	[118777, 64]	0
+MinkowskiConvolution(in_channels=64, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[118777, 128]	221,184
+MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[118777, 128]	256
+MinkowskiReLU()	[118777, 128]	0
+MinkowskiConvolution(in_channels=128, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[118777, 128]	442,368
+MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[118777, 128]	256
+MinkowskiReLU()	[118777, 128]	0
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)	[38831, 128]	0
+MinkowskiConvolution(in_channels=128, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[38831, 256]	884,736
+MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[38831, 256]	512
+MinkowskiReLU()	[38831, 256]	0
+MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[38831, 256]	1,769,472
+MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[38831, 256]	512
+MinkowskiReLU()	[38831, 256]	0
+MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[38831, 256]	1,769,472
+MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[38831, 256]	512
+MinkowskiReLU()	[38831, 256]	0
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)	[9896, 256]	0
+MinkowskiConvolution(in_channels=256, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[9896, 512]	3,538,944
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[9896, 512]	1,024
+MinkowskiReLU()	[9896, 512]	0
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[9896, 512]	7,077,888
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[9896, 512]	1,024
+MinkowskiReLU()	[9896, 512]	0
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[9896, 512]	7,077,888
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[9896, 512]	1,024
+MinkowskiReLU()	[9896, 512]	0
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)	[2414, 512]	0
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[2414, 512]	7,077,888
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[2414, 512]	1,024
+MinkowskiReLU()	[2414, 512]	0
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[2414, 512]	7,077,888
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[2414, 512]	1,024
+MinkowskiReLU()	[2414, 512]	0
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)	[2414, 512]	7,077,888
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)	[2414, 512]	1,024
+MinkowskiReLU()	[2414, 512]	0
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)	[468, 512]	0
+MinkowskiGlobalMaxPooling()	[64, 512]	0
+MinkowskiLinear(in_features=512, out_features=4096, bias=True)	[64, 4096]	2,101,248
+MinkowskiReLU()	[64, 4096]	0
+Dropout(p=0.5, inplace=False)	[64, 4096]	0
+Dropout(p=0.5, inplace=False)	[64, 4096]	0
+Dropout(p=0.5, inplace=False)	[64, 4096]	0
+MinkowskiLinear(in_features=4096, out_features=4096, bias=True)	[64, 4096]	16,781,312
+MinkowskiReLU()	[64, 4096]	0
+Dropout(p=0.5, inplace=False)	[64, 4096]	0
+Dropout(p=0.5, inplace=False)	[64, 4096]	0
+Dropout(p=0.5, inplace=False)	[64, 4096]	0
+MinkowskiLinear(in_features=4096, out_features=40, bias=True)	[64, 40]	163,880
+================================================================
+Total params: 63,182,824
+Trainable params: 63,182,824
+Non-trainable params: 0
+----------------------------------------------------------------
+model: VGG(
+  (features): Sequential(
+    (0): MinkowskiConvolution(in_channels=1, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (1): MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (2): MinkowskiReLU()
+    (3): MinkowskiConvolution(in_channels=64, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (4): MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (5): MinkowskiReLU()
+    (6): MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)
+    (7): MinkowskiConvolution(in_channels=64, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (8): MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (9): MinkowskiReLU()
+    (10): MinkowskiConvolution(in_channels=128, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (11): MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (12): MinkowskiReLU()
+    (13): MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)
+    (14): MinkowskiConvolution(in_channels=128, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (15): MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (16): MinkowskiReLU()
+    (17): MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (18): MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (19): MinkowskiReLU()
+    (20): MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (21): MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (22): MinkowskiReLU()
+    (23): MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)
+    (24): MinkowskiConvolution(in_channels=256, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (25): MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (26): MinkowskiReLU()
+    (27): MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (28): MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (29): MinkowskiReLU()
+    (30): MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (31): MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (32): MinkowskiReLU()
+    (33): MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)
+    (34): MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (35): MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (36): MinkowskiReLU()
+    (37): MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (38): MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (39): MinkowskiReLU()
+    (40): MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
+    (41): MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (42): MinkowskiReLU()
+    (43): MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)
+  )
+  (glob_avg): MinkowskiGlobalMaxPooling()
+  (Dropout): Dropout(p=0.5, inplace=False)
+  (classifier): Sequential(
+    (0): MinkowskiLinear(in_features=512, out_features=4096, bias=True)
+    (1): MinkowskiReLU()
+    (2): Dropout(p=0.5, inplace=False)
+    (3): MinkowskiLinear(in_features=4096, out_features=4096, bias=True)
+    (4): MinkowskiReLU()
+    (5): Dropout(p=0.5, inplace=False)
+    (6): MinkowskiLinear(in_features=4096, out_features=40, bias=True)
+  )
+)
+Loading data time: 10.951152324676514
+data_transfer_time: 0 0.059453725814819336
+backward_time: 0 0.5322988033294678
+End-to-end time: total time: 1.717 s (1.717) s, forward compute time: 0.628 s (0.628) s, backward time:  0.532 s (0.532) s, loss time: 0.000 s (0.000 s), data time: 0.448s (0.448 s)
+data_transfer_time: 1 0.0463862419128418
+backward_time: 1 0.4980008602142334
+End-to-end time: total time: 1.115 s (1.416) s, forward compute time: 0.516 s (0.572) s, backward time:  0.498 s (0.515) s, loss time: 0.000 s (0.000 s), data time: 0.000s (0.224 s)
+data_transfer_time: 2 0.03811383247375488
+backward_time: 2 0.5240724086761475
+End-to-end time: total time: 1.149 s (1.327) s, forward compute time: 0.536 s (0.560) s, backward time:  0.524 s (0.518) s, loss time: 0.000 s (0.000 s), data time: 0.000s (0.149 s)
+data_transfer_time: 3 0.04235506057739258
+backward_time: 3 0.5078568458557129
+End-to-end time: total time: 1.109 s (1.273) s, forward compute time: 0.509 s (0.547) s, backward time:  0.508 s (0.516) s, loss time: 0.000 s (0.000 s), data time: 0.000s (0.112 s)
+data_transfer_time: 4 0.04235696792602539
+backward_time: 4 0.4686279296875
+End-to-end time: total time: 1.051 s (1.228) s, forward compute time: 0.488 s (0.536) s, backward time:  0.469 s (0.506) s, loss time: 0.000 s (0.000 s), data time: 0.006s (0.091 s)
+data_transfer_time: 5 0.03881335258483887
+backward_time: 5 0.5119264125823975
+End-to-end time: total time: 1.122 s (1.210) s, forward compute time: 0.528 s (0.534) s, backward time:  0.512 s (0.507) s, loss time: 0.000 s (0.000 s), data time: 0.000s (0.076 s)
+data_transfer_time: 6 0.039194345474243164
+backward_time: 6 0.48340511322021484
+End-to-end time: total time: 1.047 s (1.187) s, forward compute time: 0.480 s (0.527) s, backward time:  0.483 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.000s (0.065 s)
+data_transfer_time: 7 0.04341697692871094
+backward_time: 7 0.5124330520629883
+End-to-end time: total time: 1.140 s (1.181) s, forward compute time: 0.536 s (0.528) s, backward time:  0.512 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.000s (0.057 s)
+data_transfer_time: 8 0.04873204231262207
+backward_time: 8 0.5241925716400146
+End-to-end time: total time: 1.154 s (1.178) s, forward compute time: 0.529 s (0.528) s, backward time:  0.524 s (0.507) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.051 s)
+data_transfer_time: 9 0.048215627670288086
+backward_time: 9 0.5201065540313721
+End-to-end time: total time: 1.131 s (1.174) s, forward compute time: 0.509 s (0.526) s, backward time:  0.520 s (0.508) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.046 s)
+data_transfer_time: 10 0.03847455978393555
+backward_time: 10 0.5129871368408203
+End-to-end time: total time: 1.121 s (1.169) s, forward compute time: 0.506 s (0.524) s, backward time:  0.513 s (0.509) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.042 s)
+data_transfer_time: 11 0.03694319725036621
+backward_time: 11 0.4856586456298828
+End-to-end time: total time: 1.050 s (1.159) s, forward compute time: 0.477 s (0.520) s, backward time:  0.486 s (0.507) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.039 s)
+data_transfer_time: 12 0.043294429779052734
+backward_time: 12 0.5075700283050537
+End-to-end time: total time: 1.107 s (1.155) s, forward compute time: 0.505 s (0.519) s, backward time:  0.508 s (0.507) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.036 s)
+data_transfer_time: 13 0.04944777488708496
+backward_time: 13 0.5191524028778076
+End-to-end time: total time: 1.156 s (1.155) s, forward compute time: 0.538 s (0.520) s, backward time:  0.519 s (0.508) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.034 s)
+data_transfer_time: 14 0.03743147850036621
+backward_time: 14 0.5303380489349365
+End-to-end time: total time: 1.128 s (1.153) s, forward compute time: 0.508 s (0.520) s, backward time:  0.530 s (0.509) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.031 s)
+data_transfer_time: 15 0.04166245460510254
+backward_time: 15 0.46468210220336914
+End-to-end time: total time: 1.021 s (1.145) s, forward compute time: 0.466 s (0.516) s, backward time:  0.465 s (0.506) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.030 s)
+data_transfer_time: 16 0.05919361114501953
+backward_time: 16 0.4882485866546631
+End-to-end time: total time: 1.130 s (1.144) s, forward compute time: 0.538 s (0.518) s, backward time:  0.488 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.028 s)
+data_transfer_time: 17 0.04263472557067871
+backward_time: 17 0.5125885009765625
+End-to-end time: total time: 1.120 s (1.143) s, forward compute time: 0.512 s (0.517) s, backward time:  0.513 s (0.506) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.027 s)
+data_transfer_time: 18 0.03751635551452637
+backward_time: 18 0.503943681716919
+End-to-end time: total time: 1.095 s (1.140) s, forward compute time: 0.500 s (0.516) s, backward time:  0.504 s (0.506) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.025 s)
+data_transfer_time: 19 0.03922772407531738
+backward_time: 19 0.5164933204650879
+End-to-end time: total time: 1.140 s (1.140) s, forward compute time: 0.529 s (0.517) s, backward time:  0.517 s (0.506) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.024 s)
+data_transfer_time: 20 0.03844046592712402
+backward_time: 20 0.4816887378692627
+End-to-end time: total time: 1.047 s (1.136) s, forward compute time: 0.478 s (0.515) s, backward time:  0.482 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.023 s)
+data_transfer_time: 21 0.03841805458068848
+backward_time: 21 0.5074582099914551
+End-to-end time: total time: 1.098 s (1.134) s, forward compute time: 0.507 s (0.515) s, backward time:  0.507 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.022 s)
+data_transfer_time: 22 0.044161319732666016
+backward_time: 22 0.502352237701416
+End-to-end time: total time: 1.122 s (1.133) s, forward compute time: 0.523 s (0.515) s, backward time:  0.502 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.021 s)
+data_transfer_time: 23 0.039977312088012695
+backward_time: 23 0.48650097846984863
+End-to-end time: total time: 1.082 s (1.131) s, forward compute time: 0.496 s (0.514) s, backward time:  0.487 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.021 s)
+data_transfer_time: 24 0.03769111633300781
+backward_time: 24 0.4708688259124756
+End-to-end time: total time: 1.044 s (1.128) s, forward compute time: 0.488 s (0.513) s, backward time:  0.471 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.020 s)
+data_transfer_time: 25 0.03872847557067871
+backward_time: 25 0.5056068897247314
+End-to-end time: total time: 1.084 s (1.126) s, forward compute time: 0.495 s (0.513) s, backward time:  0.506 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.019 s)
+data_transfer_time: 26 0.04220223426818848
+backward_time: 26 0.5228896141052246
+End-to-end time: total time: 1.116 s (1.126) s, forward compute time: 0.501 s (0.512) s, backward time:  0.523 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.018 s)
+data_transfer_time: 27 0.03592944145202637
+backward_time: 27 0.4640641212463379
+End-to-end time: total time: 1.047 s (1.123) s, forward compute time: 0.496 s (0.512) s, backward time:  0.464 s (0.502) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.018 s)
+data_transfer_time: 28 0.041172027587890625
+backward_time: 28 0.5368566513061523
+End-to-end time: total time: 1.205 s (1.126) s, forward compute time: 0.581 s (0.514) s, backward time:  0.537 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.017 s)
+data_transfer_time: 29 0.0385432243347168
+backward_time: 29 0.516357421875
+End-to-end time: total time: 1.124 s (1.126) s, forward compute time: 0.509 s (0.514) s, backward time:  0.516 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.017 s)
+data_transfer_time: 30 0.04048943519592285
+backward_time: 30 0.5154356956481934
+End-to-end time: total time: 1.113 s (1.125) s, forward compute time: 0.510 s (0.514) s, backward time:  0.515 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.016 s)
+data_transfer_time: 31 0.040926456451416016
+backward_time: 31 0.5003061294555664
+End-to-end time: total time: 1.108 s (1.125) s, forward compute time: 0.511 s (0.514) s, backward time:  0.500 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.016 s)
+data_transfer_time: 32 0.04151129722595215
+backward_time: 32 0.5279860496520996
+End-to-end time: total time: 1.146 s (1.125) s, forward compute time: 0.525 s (0.514) s, backward time:  0.528 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.016 s)
+data_transfer_time: 33 0.04207301139831543
+backward_time: 33 0.4691276550292969
+End-to-end time: total time: 1.034 s (1.123) s, forward compute time: 0.467 s (0.513) s, backward time:  0.469 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.015 s)
+data_transfer_time: 34 0.0374295711517334
+backward_time: 34 0.5170259475708008
+End-to-end time: total time: 1.114 s (1.123) s, forward compute time: 0.511 s (0.512) s, backward time:  0.517 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.015 s)
+data_transfer_time: 35 0.04247713088989258
+backward_time: 35 0.5275483131408691
+End-to-end time: total time: 1.152 s (1.123) s, forward compute time: 0.526 s (0.513) s, backward time:  0.528 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.014 s)
+data_transfer_time: 36 0.04238009452819824
+backward_time: 36 0.49224257469177246
+End-to-end time: total time: 1.085 s (1.122) s, forward compute time: 0.496 s (0.512) s, backward time:  0.492 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.014 s)
+data_transfer_time: 37 0.040997982025146484
+backward_time: 37 0.49454760551452637
+End-to-end time: total time: 1.107 s (1.122) s, forward compute time: 0.523 s (0.513) s, backward time:  0.495 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.014 s)
+data_transfer_time: 38 0.04516887664794922
+backward_time: 38 0.5074973106384277
+End-to-end time: total time: 1.124 s (1.122) s, forward compute time: 0.516 s (0.513) s, backward time:  0.508 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.013 s)
+data_transfer_time: 39 0.036409854888916016
+backward_time: 39 0.48987436294555664
+End-to-end time: total time: 1.077 s (1.121) s, forward compute time: 0.495 s (0.512) s, backward time:  0.490 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.013 s)
+data_transfer_time: 40 0.045018672943115234
+backward_time: 40 0.49968910217285156
+End-to-end time: total time: 1.130 s (1.121) s, forward compute time: 0.535 s (0.513) s, backward time:  0.500 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.013 s)
+data_transfer_time: 41 0.04044055938720703
+backward_time: 41 0.5046050548553467
+End-to-end time: total time: 1.090 s (1.120) s, forward compute time: 0.493 s (0.512) s, backward time:  0.505 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.013 s)
+data_transfer_time: 42 0.04041242599487305
+backward_time: 42 0.526921272277832
+End-to-end time: total time: 1.133 s (1.121) s, forward compute time: 0.520 s (0.513) s, backward time:  0.527 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.012 s)
+data_transfer_time: 43 0.044732093811035156
+backward_time: 43 0.4640359878540039
+End-to-end time: total time: 1.043 s (1.119) s, forward compute time: 0.482 s (0.512) s, backward time:  0.464 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.012 s)
+data_transfer_time: 44 0.044078826904296875
+backward_time: 44 0.503262996673584
+End-to-end time: total time: 1.086 s (1.118) s, forward compute time: 0.491 s (0.511) s, backward time:  0.503 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.012 s)
+data_transfer_time: 45 0.04998278617858887
+backward_time: 45 0.514967679977417
+End-to-end time: total time: 1.146 s (1.119) s, forward compute time: 0.531 s (0.512) s, backward time:  0.515 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.012 s)
+data_transfer_time: 46 0.03948402404785156
+backward_time: 46 0.4964718818664551
+End-to-end time: total time: 1.081 s (1.118) s, forward compute time: 0.490 s (0.511) s, backward time:  0.496 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.012 s)
+data_transfer_time: 47 0.04135274887084961
+backward_time: 47 0.4970736503601074
+End-to-end time: total time: 1.081 s (1.117) s, forward compute time: 0.492 s (0.511) s, backward time:  0.497 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.011 s)
+data_transfer_time: 48 0.06678199768066406
+backward_time: 48 0.518153190612793
+End-to-end time: total time: 1.167 s (1.118) s, forward compute time: 0.535 s (0.511) s, backward time:  0.518 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.011 s)
+data_transfer_time: 49 0.03699755668640137
+backward_time: 49 0.522942066192627
+End-to-end time: total time: 1.123 s (1.118) s, forward compute time: 0.506 s (0.511) s, backward time:  0.523 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.011 s)
+data_transfer_time: 50 0.04138541221618652
+backward_time: 50 0.505012035369873
+End-to-end time: total time: 1.119 s (1.118) s, forward compute time: 0.523 s (0.512) s, backward time:  0.505 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.011 s)
+data_transfer_time: 51 0.03855443000793457
+backward_time: 51 0.5247898101806641
+End-to-end time: total time: 1.133 s (1.119) s, forward compute time: 0.515 s (0.512) s, backward time:  0.525 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.011 s)
+data_transfer_time: 52 0.04395127296447754
+backward_time: 52 0.5051214694976807
+End-to-end time: total time: 1.111 s (1.118) s, forward compute time: 0.508 s (0.512) s, backward time:  0.505 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.011 s)
+data_transfer_time: 53 0.0391850471496582
+backward_time: 53 0.4966433048248291
+End-to-end time: total time: 1.117 s (1.118) s, forward compute time: 0.532 s (0.512) s, backward time:  0.497 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.010 s)
+data_transfer_time: 54 0.04185318946838379
+backward_time: 54 0.5407812595367432
+End-to-end time: total time: 1.154 s (1.119) s, forward compute time: 0.523 s (0.512) s, backward time:  0.541 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.010 s)
+data_transfer_time: 55 0.04091501235961914
+backward_time: 55 0.4469606876373291
+End-to-end time: total time: 0.992 s (1.117) s, forward compute time: 0.452 s (0.511) s, backward time:  0.447 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.010 s)
+data_transfer_time: 56 0.04134964942932129
+backward_time: 56 0.5145165920257568
+End-to-end time: total time: 1.168 s (1.118) s, forward compute time: 0.564 s (0.512) s, backward time:  0.515 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.010 s)
+data_transfer_time: 57 0.04522228240966797
+backward_time: 57 0.5192997455596924
+End-to-end time: total time: 1.135 s (1.118) s, forward compute time: 0.515 s (0.512) s, backward time:  0.519 s (0.505) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.010 s)
+data_transfer_time: 58 0.03980541229248047
+backward_time: 58 0.4986295700073242
+End-to-end time: total time: 1.087 s (1.117) s, forward compute time: 0.495 s (0.512) s, backward time:  0.499 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.010 s)
+data_transfer_time: 59 0.0353853702545166
+backward_time: 59 0.4692516326904297
+End-to-end time: total time: 1.026 s (1.116) s, forward compute time: 0.468 s (0.511) s, backward time:  0.469 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.010 s)
+data_transfer_time: 60 0.06048226356506348
+backward_time: 60 0.5088491439819336
+End-to-end time: total time: 1.107 s (1.116) s, forward compute time: 0.490 s (0.511) s, backward time:  0.509 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.009 s)
+data_transfer_time: 61 0.03564906120300293
+backward_time: 61 0.4889559745788574
+End-to-end time: total time: 1.104 s (1.116) s, forward compute time: 0.526 s (0.511) s, backward time:  0.489 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.009 s)
+data_transfer_time: 62 0.04572868347167969
+backward_time: 62 0.5366184711456299
+End-to-end time: total time: 1.147 s (1.116) s, forward compute time: 0.516 s (0.511) s, backward time:  0.537 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.009 s)
+data_transfer_time: 63 0.04027962684631348
+backward_time: 63 0.5063769817352295
+End-to-end time: total time: 1.108 s (1.116) s, forward compute time: 0.505 s (0.511) s, backward time:  0.507 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.009 s)
+data_transfer_time: 64 0.0460352897644043
+backward_time: 64 0.5168280601501465
+End-to-end time: total time: 1.143 s (1.116) s, forward compute time: 0.529 s (0.511) s, backward time:  0.517 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.009 s)
+data_transfer_time: 65 0.03754115104675293
+backward_time: 65 0.4795341491699219
+End-to-end time: total time: 1.102 s (1.116) s, forward compute time: 0.523 s (0.511) s, backward time:  0.480 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.009 s)
+data_transfer_time: 66 0.04477548599243164
+backward_time: 66 0.4970364570617676
+End-to-end time: total time: 1.105 s (1.116) s, forward compute time: 0.515 s (0.511) s, backward time:  0.497 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.009 s)
+data_transfer_time: 67 0.0376887321472168
+backward_time: 67 0.49297547340393066
+End-to-end time: total time: 1.069 s (1.115) s, forward compute time: 0.481 s (0.511) s, backward time:  0.493 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.009 s)
+data_transfer_time: 68 0.0387265682220459
+backward_time: 68 0.4781947135925293
+End-to-end time: total time: 1.051 s (1.114) s, forward compute time: 0.485 s (0.511) s, backward time:  0.478 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.009 s)
+data_transfer_time: 69 0.043180227279663086
+backward_time: 69 0.5343685150146484
+End-to-end time: total time: 1.155 s (1.115) s, forward compute time: 0.530 s (0.511) s, backward time:  0.534 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 70 0.042940616607666016
+backward_time: 70 0.4757819175720215
+End-to-end time: total time: 1.060 s (1.114) s, forward compute time: 0.478 s (0.510) s, backward time:  0.476 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 71 0.039990901947021484
+backward_time: 71 0.5322325229644775
+End-to-end time: total time: 1.162 s (1.115) s, forward compute time: 0.538 s (0.511) s, backward time:  0.532 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 72 0.04546332359313965
+backward_time: 72 0.5142850875854492
+End-to-end time: total time: 1.127 s (1.115) s, forward compute time: 0.506 s (0.511) s, backward time:  0.514 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 73 0.04573488235473633
+backward_time: 73 0.5109117031097412
+End-to-end time: total time: 1.139 s (1.115) s, forward compute time: 0.533 s (0.511) s, backward time:  0.511 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.008 s)
+data_transfer_time: 74 0.04188418388366699
+backward_time: 74 0.48850345611572266
+End-to-end time: total time: 1.065 s (1.115) s, forward compute time: 0.482 s (0.511) s, backward time:  0.489 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 75 0.039899349212646484
+backward_time: 75 0.45897364616394043
+End-to-end time: total time: 1.013 s (1.113) s, forward compute time: 0.465 s (0.510) s, backward time:  0.459 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 76 0.04087710380554199
+backward_time: 76 0.5123453140258789
+End-to-end time: total time: 1.127 s (1.113) s, forward compute time: 0.524 s (0.510) s, backward time:  0.512 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 77 0.04129219055175781
+backward_time: 77 0.5106081962585449
+End-to-end time: total time: 1.164 s (1.114) s, forward compute time: 0.555 s (0.511) s, backward time:  0.511 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 78 0.04174947738647461
+backward_time: 78 0.5070860385894775
+End-to-end time: total time: 1.113 s (1.114) s, forward compute time: 0.504 s (0.511) s, backward time:  0.507 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 79 0.035722970962524414
+backward_time: 79 0.5122122764587402
+End-to-end time: total time: 1.107 s (1.114) s, forward compute time: 0.507 s (0.511) s, backward time:  0.512 s (0.504) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 80 0.044103145599365234
+backward_time: 80 0.46706652641296387
+End-to-end time: total time: 1.050 s (1.113) s, forward compute time: 0.487 s (0.510) s, backward time:  0.467 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.008 s)
+data_transfer_time: 81 0.039632320404052734
+backward_time: 81 0.49278831481933594
+End-to-end time: total time: 1.089 s (1.113) s, forward compute time: 0.501 s (0.510) s, backward time:  0.493 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.008 s)
+data_transfer_time: 82 0.042328834533691406
+backward_time: 82 0.5026137828826904
+End-to-end time: total time: 1.145 s (1.113) s, forward compute time: 0.547 s (0.511) s, backward time:  0.503 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 83 0.04271674156188965
+backward_time: 83 0.5293087959289551
+End-to-end time: total time: 1.140 s (1.114) s, forward compute time: 0.517 s (0.511) s, backward time:  0.529 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.007 s)
+data_transfer_time: 84 0.038869380950927734
+backward_time: 84 0.4781684875488281
+End-to-end time: total time: 1.094 s (1.113) s, forward compute time: 0.520 s (0.511) s, backward time:  0.478 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 85 0.041913747787475586
+backward_time: 85 0.5055019855499268
+End-to-end time: total time: 1.113 s (1.113) s, forward compute time: 0.516 s (0.511) s, backward time:  0.506 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 86 0.046813011169433594
+backward_time: 86 0.4970524311065674
+End-to-end time: total time: 1.120 s (1.113) s, forward compute time: 0.526 s (0.511) s, backward time:  0.497 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 87 0.04230189323425293
+backward_time: 87 0.5294806957244873
+End-to-end time: total time: 1.167 s (1.114) s, forward compute time: 0.533 s (0.511) s, backward time:  0.529 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 88 0.04638552665710449
+backward_time: 88 0.49911975860595703
+End-to-end time: total time: 1.091 s (1.114) s, forward compute time: 0.490 s (0.511) s, backward time:  0.499 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.007 s)
+data_transfer_time: 89 0.0368649959564209
+backward_time: 89 0.45899033546447754
+End-to-end time: total time: 1.036 s (1.113) s, forward compute time: 0.484 s (0.511) s, backward time:  0.459 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 90 0.0367734432220459
+backward_time: 90 0.5184242725372314
+End-to-end time: total time: 1.117 s (1.113) s, forward compute time: 0.508 s (0.511) s, backward time:  0.518 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 91 0.04450035095214844
+backward_time: 91 0.4914059638977051
+End-to-end time: total time: 1.086 s (1.113) s, forward compute time: 0.492 s (0.511) s, backward time:  0.491 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 92 0.04117703437805176
+backward_time: 92 0.51161789894104
+End-to-end time: total time: 1.122 s (1.113) s, forward compute time: 0.516 s (0.511) s, backward time:  0.512 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.007 s)
+data_transfer_time: 93 0.04444146156311035
+backward_time: 93 0.506690263748169
+End-to-end time: total time: 1.126 s (1.113) s, forward compute time: 0.518 s (0.511) s, backward time:  0.507 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 94 0.04814743995666504
+backward_time: 94 0.4938957691192627
+End-to-end time: total time: 1.131 s (1.113) s, forward compute time: 0.539 s (0.511) s, backward time:  0.494 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 95 0.04639291763305664
+backward_time: 95 0.5058639049530029
+End-to-end time: total time: 1.107 s (1.113) s, forward compute time: 0.496 s (0.511) s, backward time:  0.506 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.003s (0.007 s)
+data_transfer_time: 96 0.03808331489562988
+backward_time: 96 0.5058562755584717
+End-to-end time: total time: 1.100 s (1.113) s, forward compute time: 0.507 s (0.511) s, backward time:  0.506 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 97 0.03964519500732422
+backward_time: 97 0.5073225498199463
+End-to-end time: total time: 1.114 s (1.113) s, forward compute time: 0.509 s (0.511) s, backward time:  0.507 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 98 0.046071767807006836
+backward_time: 98 0.510199785232544
+End-to-end time: total time: 1.125 s (1.113) s, forward compute time: 0.518 s (0.511) s, backward time:  0.510 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 99 0.043599605560302734
+backward_time: 99 0.5059945583343506
+End-to-end time: total time: 1.117 s (1.113) s, forward compute time: 0.514 s (0.511) s, backward time:  0.506 s (0.503) s, loss time: 0.000 s (0.000 s), data time: 0.002s (0.007 s)
+data_transfer_time: 100 0.041259050369262695
+backward_time: 100 0.5044972896575928
+
+==========================================================
+Layer Type    Forward Time (ms)    Backward Time (ms)
+==========================================================
+MinkowskiConvolution(in_channels=1, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 77.67019271850586 2.5578951835632324
+MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 8.466813564300537 11.727297306060791
+MinkowskiReLU() 0.22931814193725586 0.2843928337097168
+MinkowskiConvolution(in_channels=64, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 3.293914794921875 6.444871425628662
+MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 8.399169445037842 11.72917127609253
+MinkowskiReLU() 0.21710634231567383 0.28752803802490234
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) 86.25403165817261 0.4030728340148926
+MinkowskiConvolution(in_channels=64, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 56.670570373535156 14.581701755523682
+MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 9.00892972946167 25.588653087615967
+MinkowskiReLU() 0.2613949775695801 0.3364086151123047
+MinkowskiConvolution(in_channels=128, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 12.418415546417236 28.626387119293213
+MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 8.91958475112915 25.6227970123291
+MinkowskiReLU() 0.25161027908325195 0.34140586853027344
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) 40.794522762298584 0.40850162506103516
+MinkowskiConvolution(in_channels=128, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 33.04649829864502 27.750823497772217
+MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 3.4174609184265137 9.6537184715271
+MinkowskiReLU() 0.1940464973449707 0.25013208389282227
+MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 22.404422760009766 54.953978061676025
+MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 3.3478307723999023 9.665393829345703
+MinkowskiReLU() 0.18378496170043945 0.2499222755432129
+MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 22.341771125793457 54.951066970825195
+MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 3.344430923461914 9.664762020111084
+MinkowskiReLU() 0.1828479766845703 0.2403402328491211
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) 11.360282897949219 0.293734073638916
+MinkowskiConvolution(in_channels=256, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 18.491322994232178 30.35412311553955
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 0.9965157508850098 2.464163303375244
+MinkowskiReLU() 0.11163711547851562 0.24745702743530273
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 23.759710788726807 59.60775375366211
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 0.9848189353942871 2.4614572525024414
+MinkowskiReLU() 0.11053085327148438 0.24788141250610352
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 23.749914169311523 59.60495948791504
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 0.9841036796569824 2.460298538208008
+MinkowskiReLU() 0.10943412780761719 0.1351165771484375
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) 3.0710935592651367 0.2326488494873047
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 7.974181175231934 13.727338314056396
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 0.33726930618286133 0.6287574768066406
+MinkowskiReLU() 0.06146430969238281 0.16687393188476562
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 5.901830196380615 13.739750385284424
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 0.3302478790283203 0.6302714347839355
+MinkowskiReLU() 0.05894899368286133 0.16641855239868164
+MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) 5.664834976196289 13.908638954162598
+MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) 0.3285646438598633 0.6902861595153809
+MinkowskiReLU() 0.0581669807434082 0.08065938949584961
+MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) 0.9928297996520996 0.32004833221435547
+MinkowskiGlobalMaxPooling() 1.0701370239257812 0.14971256256103516
+MinkowskiLinear(in_features=512, out_features=4096, bias=True) 0.15798091888427734 0.1939558982849121
+MinkowskiReLU() 0.05756378173828125 0.07086515426635742
+Dropout(p=0.5, inplace=False) 0.09011507034301758 0.3302192687988281
+MinkowskiLinear(in_features=4096, out_features=4096, bias=True) 0.2906489372253418 0.47174930572509766
+MinkowskiReLU() 0.05587339401245117 0.07513046264648438
+Dropout(p=0.5, inplace=False) 0.0695657730102539 0.0812673568725586
+MinkowskiLinear(in_features=4096, out_features=40, bias=True) 0.10981082916259766 0.2391648292541504
+
+Total accounted time: 1008.759 ms, data_times: 48.909 ms
+...done!

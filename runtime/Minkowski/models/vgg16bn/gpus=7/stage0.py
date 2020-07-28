@@ -29,16 +29,6 @@ class Stage0(torch.nn.Module):
         self.layer23 = ME.MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         self.layer24 = ME.MinkowskiReLU()
         self.layer25 = ME.MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)
-        self.layer26 = ME.MinkowskiConvolution(in_channels=256, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
-        self.layer27 = ME.MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-        self.layer28 = ME.MinkowskiReLU()
-        self.layer29 = ME.MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
-        self.layer30 = ME.MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-        self.layer31 = ME.MinkowskiReLU()
-        self.layer32 = ME.MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3)
-        self.layer33 = ME.MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
-        self.layer34 = ME.MinkowskiReLU()
-        self.layer35 = ME.MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3)
 
     
 
@@ -68,14 +58,4 @@ class Stage0(torch.nn.Module):
         out23 = self.layer23(out22)
         out24 = self.layer24(out23)
         out25 = self.layer25(out24)
-        out26 = self.layer26(out25)
-        out27 = self.layer27(out26)
-        out28 = self.layer28(out27)
-        out29 = self.layer29(out28)
-        out30 = self.layer30(out29)
-        out31 = self.layer31(out30)
-        out32 = self.layer32(out31)
-        out33 = self.layer33(out32)
-        out34 = self.layer34(out33)
-        out35 = self.layer35(out34)
-        return out35
+        return out25
