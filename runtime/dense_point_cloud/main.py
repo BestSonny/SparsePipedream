@@ -119,6 +119,7 @@ def main():
     #model = module.full_model()
     model = vgg.vgg16_bn(in_channels=1, out_channels=40)
     print("model:", model)
+    print("args.voxel_size:", args.voxel_size)
 
     model = model.cuda()
     if not args.distributed:
@@ -160,8 +161,8 @@ def main():
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)
     elif args.dataset == 'kaolinmodelnetvoxeldataset':
-        train_dataset = ModelNetVoxels(basedir=args.data_dir, split='train')
-        val_dataset = ModelNetVoxels(basedir=args.data_dir, split='test')
+        train_dataset = ModelNetVoxels(basedir=args.data_dir, split='train', resolution=args.voxel_size)
+        val_dataset = ModelNetVoxels(basedir=args.data_dir, split='test', resolution=args.voxel_size)
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)

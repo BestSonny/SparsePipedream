@@ -312,7 +312,7 @@ class StageRuntime:
         return state_dict
 
     def proc_dict(self, state_dict):
-    '''Remove the "module." from state_dict key'''
+        '''Remove the "module." from state_dict key'''
         state_dicti_new = collections.OrderedDict()
         for key, value in state_dict.items():
             if key.startswith("module."):

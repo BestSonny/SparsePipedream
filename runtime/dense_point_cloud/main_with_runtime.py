@@ -276,8 +276,8 @@ def main():
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)
     elif args.dataset == 'kaolinmodelnetvoxeldataset':
-        train_dataset = ModelNetVoxels(basedir=args.data_dir, split='train')
-        val_dataset = ModelNetVoxels(basedir=args.data_dir, split='test')
+        train_dataset = ModelNetVoxels(basedir=args.data_dir, split='train', resolution=args.voxel_size)
+        val_dataset = ModelNetVoxels(basedir=args.data_dir, split='test', resolution=args.voxel_size)
 
     distributed_sampler = False
     train_sampler = None
@@ -309,6 +309,8 @@ def main():
     if args.resume:
         assert args.start_epoch > 0
         validate(val_loader, r, args.start_epoch-1)
+        #validate(train_loader, r, args.start_epoch-1)
+        return
 
     start_run = time.time()
     for epoch in range(args.start_epoch, args.epochs):
