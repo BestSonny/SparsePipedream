@@ -103,12 +103,15 @@ def compute_partitioning(server, gpu_list, compute_times, activation_sizes, para
                     # max_m_prime refers to the number of machines involved within two stages
                     max_m_prime = 2 if straight_pipeline else (m+1)
                     for m_prime in range(1, max_m_prime):
+                        #input_transfer_time = (2.0 * output_activation_sizes[k]) / \
+                        #    (bandwidth * m_prime)
                         input_transfer_time = (2.0 * output_activation_sizes[k]) / \
-                            (bandwidth * m_prime)
+                            (bandwidth) # * m_prime)
                         output_transfer_time = None
                         if j < len(output_activation_sizes) -1:
-                            output_transfer_time = (2.0 *
-                                output_activation_sizes[j]) / (bandwidth * m_prime)
+                            #output_transfer_time = (2.0 *
+                            #    output_activation_sizes[j]) / (bandwidth * m_prime)
+                            output_transfer_time = (2.0 * output_activation_sizes[j] ) / (bandwidth)# * m_prime)
 
                         
                         machine_list = gpu_list[m-m_prime + 1 : m+1]
@@ -122,7 +125,7 @@ def compute_partitioning(server, gpu_list, compute_times, activation_sizes, para
                             continue
                         last_stage_time = sum([last_stage_time,
                                                #((4 * (m_prime - 1) *
-                                               ((2 * (m_prime - 1) *
+                                               ((2.0 * (m_prime - 1) *
                                                 last_stage_parameter_size) / (bandwidth * m_prime))])
                         last_stage_time /= m_prime
 
@@ -255,7 +258,7 @@ def analyze_partitioning(A, server, start, end, network_bandwidth, #num_machines
             #time = states[splits[i]-1].compute_time - states[prev_split-1].compute_time
             time = server.optimal_partition[prev_split-1][splits[i]-1][replication_factors[i][0]-1][0]
             if replication_factors[i][0] == 1:
-                time = server.dict_gpu[slowest_gpus[i]].compute_times[prev_split-1][splits[i]-1]
+                time = server.dict_gpu[slowest_gpus[i]].compute_times[prev_split][splits[i]-1]
         else:
             #time = states[splits[i]-1].compute_time
             time = server.optimal_partition[0][splits[i]-1][replication_factors[i][0]-1][0]
@@ -455,7 +458,7 @@ if __name__ == '__main__':
     #                    help="Number of machines available")
     parser.add_argument('-f', "--server_config_file", required=True,
                         help="Profile filename")
-    parser.add_argument('-b', "--network_bandwidths", type=float, nargs='+', default=[1000000000],
+    parser.add_argument('-b', "--network_bandwidths", type=float, nargs='+', default=[100000000], #100MB
                         help="Available network bandwidth in bytes/sec")
     parser.add_argument('-s', "--memory_size", type=float, default=16000000000,
                         help="Amount of memory available on each machine")

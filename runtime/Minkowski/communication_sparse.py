@@ -76,8 +76,9 @@ class CommunicationSparseHandler(object):
         # Stores list of ranks of GPUs on the same server.
         self.ranks_in_server = []
 
-        if num_ranks_in_server == 1:
-            return
+        # comment for running 5 GPUs (4 + 1)
+        #if num_ranks_in_server == 1:
+        #    return
 
         # Stores information about tensors sent directly GPU-to-GPU.
         self.connection_list = []
@@ -418,8 +419,9 @@ class CommunicationSparseHandler(object):
         direction. Since ranks within process groups must always be identical,
         the smaller rank always goes first, followed by the larger rank.
         """
-        if self.num_ranks_in_server == 1:
-            return
+        # comment for running 5 GPUs (4 + 1)
+        #if self.num_ranks_in_server == 1:
+        #    return
 
         print("Setting up process groups for broadcasts...")
 

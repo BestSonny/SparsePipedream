@@ -277,10 +277,7 @@ class ModelNetMinkowski(object):
         point_clouds = point_clouds - point_clouds.min(dim=0)[0]
         scale = point_clouds.max(dim=0)[0] - point_clouds.min(dim=0)[0]
         point_clouds = (point_clouds -point_clouds.min(dim=0)[0])/(scale*1.0)
-        if self.training == 'train':
-            choice = np.random.choice(point_clouds.shape[0], int(self.num_points*self.sample_ratio), replace=False)
-        else:
-            choice = np.random.choice(point_clouds.shape[0], self.num_points, replace=False)
+        choice = np.random.choice(point_clouds.shape[0], int(self.num_points*self.sample_ratio), replace=False)
         point_clouds = point_clouds[choice]
         quantized_coords = point_clouds.div(self.voxel_size).floor()
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
@@ -298,7 +295,8 @@ if __name__ == '__main__':
                                       voxel_size=0.05)
     train_dataset = ModelNetMinkowski(basedir="../../dense_point_cloud/ModelNet40",
                                       split='test',
-                                      voxel_size=0.05)
+                                      voxel_size=0.05,
+                                      sample_ratio=0.25)
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                         batch_size=32,
                                         shuffle=True,

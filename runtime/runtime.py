@@ -311,9 +311,23 @@ class StageRuntime:
             state_dict["master_parameters"] = self.master_parameters
         return state_dict
 
+    def proc_dict(self, state_dict):
+        '''Remove the "module." from state_dict key'''
+        state_dicti_new = collections.OrderedDict()
+        for key, value in state_dict.items():
+            if key.startswith("module."):
+                key2 = key[7:]
+            else:
+                key2 = key
+            state_dicti_new[key2] = value 
+        return state_dicti_new
+
     def load_state_dict(self, state_dict):
         for i, module in enumerate(self.modules_with_dependencies.modules()):
-            module.load_state_dict(state_dict["module%d" % i])
+            #module.load_state_dict(state_dict["module%d" % i])
+            # modified by keke to load module correctly
+            module_state_dict = state_dict["module%d" % i]
+            module.load_state_dict(self.proc_dict(module_state_dict))
         if self.fp16:
             saved_master_parameters = state_dict["master_parameters"]
             for master_parameter, saved_master_parameter in zip(
