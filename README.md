@@ -1,18 +1,17 @@
-# PipeDream: Generalized Pipeline Parallelism for DNN Training
+# SparsePipe: Parallel Deep Learning for 3D Point Clouds
 
-This repository contains the source code implementation of the SOSP paper
-"PipeDream: Generalized Pipeline Parallelism for DNN Training". This work was
-done as part of Microsoft Research's [Project Fiddle](https://aka.ms/msr-fiddle). This source code
-is available under the [MIT License](LICENSE.txt).
+This repository contains the source code implementation of the paper
+"SparsePipe: Parallel Deep Learning for 3D Point Clouds". This code is
+implemented based on PipeDream's code avilable at https://github.com/msr-fiddle/pipedream 
 
 ## Directory Structure
 
 ### `graph`
 
-This contains a Python implementation of a graph, used by the PipeDream profiler
+This contains a Python implementation of a graph, used by the SparsePipe profiler
 and optimizer. Profiling scripts in `profiler` generate graph profiles, that can
 then be ingested by the optimizer located in `optimizer` to generate a partitioned
-model, that can then be fed to the PipeDream runtime.
+model, that can then be fed to the SparsePipe runtime.
 
 ### `profiler`
 
@@ -21,11 +20,12 @@ the optimizer.
 
 ### `optimizer`
 
-A Python implementation of PipeDream's optimizer.
+A Python implementation of SparsePipe's optimizer that would generate the model
+partition for specified number of GPUs.
 
 ### `runtime`
 
-PipeDream's runtime, which implements model parallelism, as well as input
+SparsePipe's runtime, which implements model parallelism, as well as input
 pipelining in PyTorch. This can be fused with data parallelism to give hybrid
 model and data parallelism, and input pipelining.
 
@@ -33,23 +33,19 @@ model and data parallelism, and input pipelining.
 
 ### Software Dependencies
 
-To run PipeDream, you will need a NVIDIA GPU with CUDA 10.0, GPU driver version 418.56, nvidia-docker2,
+To run SparsePipe, you will need a NVIDIA GPU, GPU driver, nvidia-docker2,
 and Python 3. On a Linux server with NVIDIA GPU(s) and Ubuntu 16.04, these dependencies can be installed
-using,
+as follows.
+
+All dependencies are in the nvcr.io/nvidia/pytorch:20.03-py3 container, which can be downloaded using,
 
 ```bash
-bash setup.sh
+nvidia-docker pull nvcr.io/nvidia/pytorch:20.03-py3
 ```
 
-All dependencies are in the nvcr.io/nvidia/pytorch:19.05-py3 container, which can be downloaded using,
-
-```bash
-nvidia-docker pull nvcr.io/nvidia/pytorch:19.05-py3
-```
-
-To run the PipeDream profiler, you will need to build a new Docker image, which can be done using the
-Dockerfile in this directory. Note that the Dockerfile has a dependency on the `pre_hook.patch`  and
-`requirements.txt` files in this directory. This container can be built using,
+To run the SparsePipe profiler and Minkowski code, you will need to build a new Docker image,
+which can be done using the Dockerfile in this directory. Note that the Dockerfile has a 
+dependency on the `requirements.txt` files in this directory. This container can be built using,
 
 ```bash
 docker build --tag <CONTAINER_NAME> .
@@ -63,54 +59,64 @@ nvidia-docker run -it -v /mnt:/mnt --ipc=host --net=host <CONTAINER_NAME> /bin/b
 
 ### Data
 
+#### Minkowski / dense\_point\_cloud
+All sparse or dense point cloud experiments are run using the ModelNet40 dataset.
+
 #### Image Classification
-All image classification experiments are run using the ImageNet ILSVC 2012 dataset.
+All image classification experiments are run using the ImageNet ILSVC 2012 dataset
 This can be downloaded using the following command (within the docker container above),
 
 ```bash
 cd scripts; python download_imagenet.py --data_dir <DATASET_DIR>
 ```
-
 Note that the ImageNet dataset is about 145GB, so this download script can take some time.
-
-#### Translation
-All translation experiments are run using the WMT En-De dataset, also used for the MLPerf
-translation (RNN) task. This can be downloaded using the instructions in [the MLPerf
-repository](https://github.com/mlperf/training_results_v0.5/tree/master/v0.5.0/nvidia/submission/code/translation/pytorch#2-directions).
 
 
 ## End-to-end Workflow
 
-To run a demo, run the following commands (the optimizer and runtime have been verified to work unchanged in `nvcr.io/nvidia/pytorch:19.05-py3`).
-More detailed instructions for each of the individual components are in the corresponding directory READMEs,
-and more detailed instructions on how to run the main experiments in the SOSP paper are in [`EXPERIMENTS.md`](EXPERIMENTS.md).
+To run a demo, run the following commands (the optimizer and runtime have been verified to work unchanged in `nvcr.io/nvidia/pytorch:20.03-py3`).
+More detailed instructions for each of the individual components are in the corresponding directory READMEs.
 
-[from `pipedream/profiler/image_classification`; you will need to have the changes to PyTorch listed above]
+[from `SparsePipedream/profiler/Minkowski`]
 Note that the profiling step must be run with only a single GPU (hence the `CUDA_VISIBLE_DEVICES=0` before the command).
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python main.py -a vgg16 -b 64 --data_dir <path to ImageNet directory>
+CUDA_VISIBLE_DEVICES=0 python main.py -a minkvgg --voxel_size 0.02 --batch_size 64 --dataset <path to ImageNet directory> --verbose
+```
+
+[from `SparsePipedream/optimizer`]
+In `hete_files`, construct your own server file (example is given in `test_server.txt`, which specifies the server name, GPU type, GPU number, and the profile file location for each GPU type)
+
+Run original Pipedream optimizer
+
+```bash
+python optimizer_graph_hierarchical.py -f ../profiler/Minkowski/profiles/minkvgg/minkvgg_v0.02_b64_RTX/graph.txt -n 4 -b 100000000 --activation_compression_ratio 1 -o minkvgg_partitioned
+```
+
+Run SparsePipe heterogeneous optimizer
+
+```bash
+python optimizer_graph_hierarchical_hybrid.py -f hete_files/test_server.txt -b 100000000 --activation_compression_ratio 1 -o minkvgg_partitioned
 ```
 
 [from `pipedream/optimizer`]
 
 ```bash
-python optimizer_graph_hierarchical.py -f ../profiler/image_classification/profiles/vgg16/graph.txt -n 4 --activation_compression_ratio 1 -o vgg16_partitioned
+python convert_graph_to_model_for_mink.py -f minkvgg_partitioned/gpus=4.txt -n MinkVggPartitioned -a minkvgg16 -o ../runtime/Minkowski/models/vgg16bn/gpus=4 --stage_to_num_ranks 0:3,1:1
 ```
 
-[from `pipedream/optimizer`]
+[from `pipedream/runtime/Minkowski`; run on 4 GPUs (including a single server with 4 GPUs)]
 
 ```bash
-python convert_graph_to_model.py -f vgg16_partitioned/gpus=4.txt -n VGG16Partitioned -a vgg16 -o ../runtime/image_classification/models/vgg16/gpus=4 --stage_to_num_ranks 0:3,1:1
+python main_with_runtime.py --module models.vgg16bn.gpus=4 -b 64 --data_dir <path to ImageNet> --rank 0 --local_rank 0 --master_addr <master IP address> --config_path models/vgg16bn/gpus=4/hybrid_conf.json --distributed_backend gloo
+python main_with_runtime.py --module models.vgg16bn.gpus=4 -b 64 --data_dir <path to ImageNet> --rank 1 --local_rank 1 --master_addr <master IP address> --config_path models/vgg16bn/gpus=4/hybrid_conf.json --distributed_backend gloo
+python main_with_runtime.py --module models.vgg16bn.gpus=4 -b 64 --data_dir <path to ImageNet> --rank 2 --local_rank 2 --master_addr <master IP address> --config_path models/vgg16bn/gpus=4/hybrid_conf.json --distributed_backend gloo
+python main_with_runtime.py --module models.vgg16bn.gpus=4 -b 64 --data_dir <path to ImageNet> --rank 3 --local_rank 3 --master_addr <master IP address> --config_path models/vgg16bn/gpus=4/hybrid_conf.json --distributed_backend gloo
 ```
-
-[from `pipedream/runtime/image_classification`; run on 4 GPUs (including a single server with 4 GPUs)]
-
+[from `SparsePipedream/runtime`]
+Or use the config file
 ```bash
-python main_with_runtime.py --module models.vgg16.gpus=4 -b 64 --data_dir <path to ImageNet> --rank 0 --local_rank 0 --master_addr <master IP address> --config_path models/vgg16/gpus=4/hybrid_conf.json --distributed_backend gloo
-python main_with_runtime.py --module models.vgg16.gpus=4 -b 64 --data_dir <path to ImageNet> --rank 1 --local_rank 1 --master_addr <master IP address> --config_path models/vgg16/gpus=4/hybrid_conf.json --distributed_backend gloo
-python main_with_runtime.py --module models.vgg16.gpus=4 -b 64 --data_dir <path to ImageNet> --rank 2 --local_rank 2 --master_addr <master IP address> --config_path models/vgg16/gpus=4/hybrid_conf.json --distributed_backend gloo
-python main_with_runtime.py --module models.vgg16.gpus=4 -b 64 --data_dir <path to ImageNet> --rank 3 --local_rank 3 --master_addr <master IP address> --config_path models/vgg16/gpus=4/hybrid_conf.json --distributed_backend gloo
+python driver.py --config_file Minkowski/driver_configs/minkvgg16_2dp.yml --launch_single_container --mount_directories <directory/to/SparsePipedream>
 ```
 
 `master IP address` here is the IP address of the rank 0 process. On a server with 4 GPUs, `localhost` can be specified.
@@ -119,13 +125,5 @@ When running DP setups, please use the `nccl` backend for optimal performance. W
 the `gloo` backend.
 
 
-## Code of Conduct
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 
-## License
-
-Copyright (c) Microsoft Corporation. All rights reserved.
-
-Licensed under the [MIT](LICENSE.txt) license.

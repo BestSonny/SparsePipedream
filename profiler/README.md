@@ -23,7 +23,7 @@ This directory contains some user-written modules to assist with PyTorch trainin
   
 ### Instrumented applications for each application type
 
-`image_classification` and `translation` contain instrumented applications
+`Minkowski`, `image_classification` and `translation` contain instrumented applications
 with the PipeDream profiler. They return profiles for each model, annotated with output activation sizes,
 parameter sizes, and compute times for each layer.
 
