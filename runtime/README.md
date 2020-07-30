@@ -26,7 +26,7 @@ multiple machines, and supports pipelining.
 
 `driver.py` can be used to run sparse models on 1 server or across servers
 with the number of GPUs on each server varying
-(Server0 has 2 GPU, and Server1 has 4 GPUs).
+(e.g., Server0 has 2 GPU, and Server1 has 4 GPUs).
 
 `driver_for_dense.py` is used to run `dense_point_cloud`, `image_classification`,
 or `translation` that run on 1 server or across servers with the assumption that

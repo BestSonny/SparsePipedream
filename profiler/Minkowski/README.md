@@ -12,9 +12,12 @@ and forward and backward computation times, along with a serialized graph object
 containing all this metadata.
 
 During the profiling runtime, it would first load all the dataset, then run 50
-time steps to warmup the GPU. After that, the profiling process begins.
+iterations to warmup the GPU. After that, the profiling process begins.
 
 The user can specify the module_whitelist such that during profiling, the program
 would take each module in the module_whitelist as a depth=1 module. The forward
 and backward computational time is reported as a whole thing.
+
+To run `../optimizer/optimizer_graph_hierarchical_hybrid.py`, profiler needs to run
+on each GPU type and save the profiling output in a different directory.
 

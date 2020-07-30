@@ -99,13 +99,13 @@ Run SparsePipe heterogeneous optimizer
 python optimizer_graph_hierarchical_hybrid.py -f hete_files/test_server.txt -b 100000000 --activation_compression_ratio 1 -o minkvgg_partitioned
 ```
 
-[from `pipedream/optimizer`]
+[from `SparsePipedream/optimizer`]
 
 ```bash
 python convert_graph_to_model_for_mink.py -f minkvgg_partitioned/gpus=4.txt -n MinkVggPartitioned -a minkvgg16 -o ../runtime/Minkowski/models/vgg16bn/gpus=4 --stage_to_num_ranks 0:3,1:1
 ```
 
-[from `pipedream/runtime/Minkowski`; run on 4 GPUs (including a single server with 4 GPUs)]
+[from `SparsePipedream/runtime/Minkowski`; run on 4 GPUs (including a single server with 4 GPUs)]
 
 ```bash
 python main_with_runtime.py --module models.vgg16bn.gpus=4 -b 64 --data_dir <path to ImageNet> --rank 0 --local_rank 0 --master_addr <master IP address> --config_path models/vgg16bn/gpus=4/hybrid_conf.json --distributed_backend gloo
