@@ -1,56 +1,56 @@
-node1 -- Input0 -- forward_compute_time=50.982, backward_compute_time=0.000, activation_size=256.0, parameter_size=0.000
-node2 -- MinkowskiConvolution(in_channels=1, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=72.751, backward_compute_time=2.094, activation_size=53239552.0, parameter_size=6912.000
-node3 -- MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=7.623, backward_compute_time=9.327, activation_size=53239552.0, parameter_size=512.000
-node4 -- MinkowskiReLU() -- forward_compute_time=0.248, backward_compute_time=0.311, activation_size=53239552.0, parameter_size=0.000
-node5 -- MinkowskiConvolution(in_channels=64, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=5.080, backward_compute_time=10.700, activation_size=53239552.0, parameter_size=442368.000
-node6 -- MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=7.534, backward_compute_time=9.335, activation_size=53239552.0, parameter_size=512.000
-node7 -- MinkowskiReLU() -- forward_compute_time=0.232, backward_compute_time=0.315, activation_size=53239552.0, parameter_size=0.000
-node8 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=84.439, backward_compute_time=0.496, activation_size=31868672.0, parameter_size=0.000
-node9 -- MinkowskiConvolution(in_channels=64, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=71.608, backward_compute_time=24.927, activation_size=63737344.0, parameter_size=884736.000
-node10 -- MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=7.044, backward_compute_time=21.761, activation_size=63737344.0, parameter_size=1024.000
-node11 -- MinkowskiReLU() -- forward_compute_time=0.289, backward_compute_time=0.372, activation_size=63737344.0, parameter_size=0.000
-node12 -- MinkowskiConvolution(in_channels=128, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=20.726, backward_compute_time=49.365, activation_size=63737344.0, parameter_size=1769472.000
-node13 -- MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=6.943, backward_compute_time=21.764, activation_size=63737344.0, parameter_size=1024.000
-node14 -- MinkowskiReLU() -- forward_compute_time=0.273, backward_compute_time=0.376, activation_size=63737344.0, parameter_size=0.000
-node15 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=40.653, backward_compute_time=0.555, activation_size=21473280.0, parameter_size=0.000
-node16 -- MinkowskiConvolution(in_channels=128, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=50.936, backward_compute_time=47.856, activation_size=42946560.0, parameter_size=3538944.000
-node17 -- MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=2.677, backward_compute_time=8.086, activation_size=42946560.0, parameter_size=2048.000
-node18 -- MinkowskiReLU() -- forward_compute_time=0.209, backward_compute_time=0.280, activation_size=42946560.0, parameter_size=0.000
-node19 -- MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=37.520, backward_compute_time=95.720, activation_size=42946560.0, parameter_size=7077888.000
-node20 -- MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=2.657, backward_compute_time=8.094, activation_size=42946560.0, parameter_size=2048.000
-node21 -- MinkowskiReLU() -- forward_compute_time=0.196, backward_compute_time=0.280, activation_size=42946560.0, parameter_size=0.000
-node22 -- MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=37.764, backward_compute_time=95.714, activation_size=42946560.0, parameter_size=7077888.000
-node23 -- MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=2.611, backward_compute_time=8.090, activation_size=42946560.0, parameter_size=2048.000
-node24 -- MinkowskiReLU() -- forward_compute_time=0.194, backward_compute_time=0.266, activation_size=42946560.0, parameter_size=0.000
-node25 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=11.367, backward_compute_time=0.380, activation_size=10832896.0, parameter_size=0.000
-node26 -- MinkowskiConvolution(in_channels=256, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=30.290, backward_compute_time=52.417, activation_size=21665792.0, parameter_size=14155776.000
-node27 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.812, backward_compute_time=2.183, activation_size=21665792.0, parameter_size=4096.000
-node28 -- MinkowskiReLU() -- forward_compute_time=0.117, backward_compute_time=0.277, activation_size=21665792.0, parameter_size=0.000
-node29 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=39.497, backward_compute_time=103.595, activation_size=21665792.0, parameter_size=28311552.000
-node30 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.793, backward_compute_time=2.184, activation_size=21665792.0, parameter_size=4096.000
-node31 -- MinkowskiReLU() -- forward_compute_time=0.113, backward_compute_time=0.277, activation_size=21665792.0, parameter_size=0.000
-node32 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=39.708, backward_compute_time=103.620, activation_size=21665792.0, parameter_size=28311552.000
-node33 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.790, backward_compute_time=2.184, activation_size=21665792.0, parameter_size=4096.000
-node34 -- MinkowskiReLU() -- forward_compute_time=0.112, backward_compute_time=0.147, activation_size=21665792.0, parameter_size=0.000
-node35 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=2.892, backward_compute_time=0.295, activation_size=5287936.0, parameter_size=0.000
-node36 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=11.756, backward_compute_time=23.372, activation_size=5287936.0, parameter_size=28311552.000
-node37 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.273, backward_compute_time=0.603, activation_size=5287936.0, parameter_size=4096.000
-node38 -- MinkowskiReLU() -- forward_compute_time=0.052, backward_compute_time=0.185, activation_size=5287936.0, parameter_size=0.000
-node39 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=9.557, backward_compute_time=23.401, activation_size=5287936.0, parameter_size=28311552.000
-node40 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.262, backward_compute_time=0.584, activation_size=5287936.0, parameter_size=4096.000
-node41 -- MinkowskiReLU() -- forward_compute_time=0.050, backward_compute_time=0.185, activation_size=5287936.0, parameter_size=0.000
-node42 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], has_bias=False, dimension=3) -- forward_compute_time=9.163, backward_compute_time=23.557, activation_size=5287936.0, parameter_size=28311552.000
-node43 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.251, backward_compute_time=0.635, activation_size=5287936.0, parameter_size=4096.000
-node44 -- MinkowskiReLU() -- forward_compute_time=0.048, backward_compute_time=0.069, activation_size=5287936.0, parameter_size=0.000
-node45 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=0.917, backward_compute_time=0.279, activation_size=964608.0, parameter_size=0.000
-node46 -- MinkowskiGlobalMaxPooling() -- forward_compute_time=0.945, backward_compute_time=0.132, activation_size=131072.0, parameter_size=0.000
-node47 -- MinkowskiLinear(in_features=512, out_features=4096, bias=True) -- forward_compute_time=0.167, backward_compute_time=0.163, activation_size=1048576.0, parameter_size=8404992.000
-node48 -- MinkowskiReLU() -- forward_compute_time=0.045, backward_compute_time=0.054, activation_size=1048576.0, parameter_size=0.000
-node49 -- Dropout(p=0.5, inplace=False) -- forward_compute_time=0.093, backward_compute_time=0.370, activation_size=1048576.0, parameter_size=0.000
-node50 -- MinkowskiLinear(in_features=4096, out_features=4096, bias=True) -- forward_compute_time=0.361, backward_compute_time=0.422, activation_size=1048576.0, parameter_size=67125248.000
-node51 -- MinkowskiReLU() -- forward_compute_time=0.042, backward_compute_time=0.061, activation_size=1048576.0, parameter_size=0.000
+node1 -- Input0 -- forward_compute_time=11.567, backward_compute_time=0.000, activation_size=256.0, parameter_size=0.000
+node2 -- MinkowskiConvolution(in_channels=1, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=6.097, backward_compute_time=1.958, activation_size=52188160.0, parameter_size=6912.000
+node3 -- MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=7.596, backward_compute_time=9.360, activation_size=52188160.0, parameter_size=512.000
+node4 -- MinkowskiReLU() -- forward_compute_time=0.237, backward_compute_time=0.314, activation_size=52188160.0, parameter_size=0.000
+node5 -- MinkowskiConvolution(in_channels=64, out_channels=64, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=4.762, backward_compute_time=10.683, activation_size=52188160.0, parameter_size=442368.000
+node6 -- MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=7.538, backward_compute_time=9.379, activation_size=52188160.0, parameter_size=512.000
+node7 -- MinkowskiReLU() -- forward_compute_time=0.227, backward_compute_time=0.317, activation_size=52188160.0, parameter_size=0.000
+node8 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=1.757, backward_compute_time=0.456, activation_size=30406656.0, parameter_size=0.000
+node9 -- MinkowskiConvolution(in_channels=64, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=14.372, backward_compute_time=25.061, activation_size=60813312.0, parameter_size=884736.000
+node10 -- MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=6.942, backward_compute_time=21.444, activation_size=60813312.0, parameter_size=1024.000
+node11 -- MinkowskiReLU() -- forward_compute_time=0.271, backward_compute_time=0.375, activation_size=60813312.0, parameter_size=0.000
+node12 -- MinkowskiConvolution(in_channels=128, out_channels=128, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=20.554, backward_compute_time=49.843, activation_size=60813312.0, parameter_size=1769472.000
+node13 -- MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=6.934, backward_compute_time=21.768, activation_size=60813312.0, parameter_size=1024.000
+node14 -- MinkowskiReLU() -- forward_compute_time=0.269, backward_compute_time=0.385, activation_size=60813312.0, parameter_size=0.000
+node15 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=1.253, backward_compute_time=0.479, activation_size=20334592.0, parameter_size=0.000
+node16 -- MinkowskiConvolution(in_channels=128, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=21.658, backward_compute_time=22.898, activation_size=40669184.0, parameter_size=3538944.000
+node17 -- MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=2.611, backward_compute_time=8.394, activation_size=40669184.0, parameter_size=2048.000
+node18 -- MinkowskiReLU() -- forward_compute_time=0.194, backward_compute_time=0.279, activation_size=40669184.0, parameter_size=0.000
+node19 -- MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=37.502, backward_compute_time=35.726, activation_size=40669184.0, parameter_size=7077888.000
+node20 -- MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=2.618, backward_compute_time=8.406, activation_size=40669184.0, parameter_size=2048.000
+node21 -- MinkowskiReLU() -- forward_compute_time=0.193, backward_compute_time=0.279, activation_size=40669184.0, parameter_size=0.000
+node22 -- MinkowskiConvolution(in_channels=256, out_channels=256, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=37.781, backward_compute_time=36.172, activation_size=40669184.0, parameter_size=7077888.000
+node23 -- MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=2.619, backward_compute_time=8.628, activation_size=40669184.0, parameter_size=2048.000
+node24 -- MinkowskiReLU() -- forward_compute_time=0.193, backward_compute_time=0.263, activation_size=40669184.0, parameter_size=0.000
+node25 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=0.892, backward_compute_time=0.356, activation_size=10342400.0, parameter_size=0.000
+node26 -- MinkowskiConvolution(in_channels=256, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=21.437, backward_compute_time=16.793, activation_size=20684800.0, parameter_size=14155776.000
+node27 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.798, backward_compute_time=2.330, activation_size=20684800.0, parameter_size=4096.000
+node28 -- MinkowskiReLU() -- forward_compute_time=0.114, backward_compute_time=0.273, activation_size=20684800.0, parameter_size=0.000
+node29 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=39.728, backward_compute_time=26.615, activation_size=20684800.0, parameter_size=28311552.000
+node30 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.793, backward_compute_time=2.280, activation_size=20684800.0, parameter_size=4096.000
+node31 -- MinkowskiReLU() -- forward_compute_time=0.111, backward_compute_time=0.274, activation_size=20684800.0, parameter_size=0.000
+node32 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=39.756, backward_compute_time=25.412, activation_size=20684800.0, parameter_size=28311552.000
+node33 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.791, backward_compute_time=2.214, activation_size=20684800.0, parameter_size=4096.000
+node34 -- MinkowskiReLU() -- forward_compute_time=0.111, backward_compute_time=0.148, activation_size=20684800.0, parameter_size=0.000
+node35 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=0.744, backward_compute_time=0.307, activation_size=5089280.0, parameter_size=0.000
+node36 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=9.700, backward_compute_time=6.605, activation_size=5089280.0, parameter_size=28311552.000
+node37 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.255, backward_compute_time=0.603, activation_size=5089280.0, parameter_size=4096.000
+node38 -- MinkowskiReLU() -- forward_compute_time=0.047, backward_compute_time=0.183, activation_size=5089280.0, parameter_size=0.000
+node39 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=9.076, backward_compute_time=6.794, activation_size=5089280.0, parameter_size=28311552.000
+node40 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.245, backward_compute_time=0.628, activation_size=5089280.0, parameter_size=4096.000
+node41 -- MinkowskiReLU() -- forward_compute_time=0.046, backward_compute_time=0.181, activation_size=5089280.0, parameter_size=0.000
+node42 -- MinkowskiConvolution(in_channels=512, out_channels=512, kernel_size=[3, 3, 3], stride=[1, 1, 1], dilation=[1, 1, 1], bias=None, dimension=3) -- forward_compute_time=9.073, backward_compute_time=6.924, activation_size=5089280.0, parameter_size=28311552.000
+node43 -- MinkowskiBatchNorm(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True) -- forward_compute_time=0.245, backward_compute_time=0.636, activation_size=5089280.0, parameter_size=4096.000
+node44 -- MinkowskiReLU() -- forward_compute_time=0.052, backward_compute_time=0.074, activation_size=5089280.0, parameter_size=0.000
+node45 -- MinkowskiMaxPooling(kernel_size=[2, 2, 2], stride=[2, 2, 2], dilation=[1, 1, 1], dimension=3) -- forward_compute_time=0.555, backward_compute_time=0.142, activation_size=960512.0, parameter_size=0.000
+node46 -- MinkowskiGlobalMaxPooling(mode=PoolingMode.GLOBAL_MAX_POOLING_KERNEL) -- forward_compute_time=1.249, backward_compute_time=0.140, activation_size=131072.0, parameter_size=0.000
+node47 -- MinkowskiLinear(in_features=512, out_features=4096, bias=True) -- forward_compute_time=0.137, backward_compute_time=0.187, activation_size=1048576.0, parameter_size=8404992.000
+node48 -- MinkowskiReLU() -- forward_compute_time=0.043, backward_compute_time=0.065, activation_size=1048576.0, parameter_size=0.000
+node49 -- Dropout(p=0.5, inplace=False) -- forward_compute_time=0.070, backward_compute_time=0.367, activation_size=1048576.0, parameter_size=0.000
+node50 -- MinkowskiLinear(in_features=4096, out_features=4096, bias=True) -- forward_compute_time=0.340, backward_compute_time=0.426, activation_size=1048576.0, parameter_size=67125248.000
+node51 -- MinkowskiReLU() -- forward_compute_time=0.040, backward_compute_time=0.067, activation_size=1048576.0, parameter_size=0.000
 node52 -- Dropout(p=0.5, inplace=False) -- forward_compute_time=0.000, backward_compute_time=0.000, activation_size=1048576.0, parameter_size=0.000
-node53 -- MinkowskiLinear(in_features=4096, out_features=40, bias=True) -- forward_compute_time=0.102, backward_compute_time=0.239, activation_size=10240.0, parameter_size=655520.000
+node53 -- MinkowskiLinear(in_features=4096, out_features=40, bias=True) -- forward_compute_time=0.094, backward_compute_time=0.216, activation_size=10240.0, parameter_size=655520.000
 	node1 -- node2
 	node2 -- node3
 	node3 -- node4
