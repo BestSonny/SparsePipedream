@@ -281,47 +281,50 @@ class ModelNetMinkowski(object):
         point_clouds = point_clouds[choice]
         quantized_coords = point_clouds.div(self.voxel_size).floor()
         inds = ME.utils.sparse_quantize(quantized_coords, return_index=True)
-        feats = np.empty([quantized_coords[inds].size(0), 1])
+        #print("inds:", inds)
+        #print("inds shape:", len(inds))
+        feats = np.empty([quantized_coords[inds[1].long()].size(0), 1])
         feats.fill(1)
         feats = torch.from_numpy(feats.astype(np.float32))
         category = torch.tensor([self.cat_idxs[index]], dtype=torch.long, device=self.device)
-        return quantized_coords[inds], feats, category
+        return quantized_coords[inds[1].long()], feats, category
         
 
 
 if __name__ == '__main__':
-    train_dataset = ModelNetMinkowski(basedir="../../dense_point_cloud/ModelNet40",
+    voxel_size = 0.02
+    voxels = 1/voxel_size
+    print("voxel_size:", voxel_size, "voxels: ", voxels)
+    train_dataset = ModelNetMinkowski(basedir="/data/keke/pipeDream/dataSet/ModelNet40", #../../dense_point_cloud/ModelNet40",
                                       split='train',
-                                      voxel_size=0.05)
-    train_dataset = ModelNetMinkowski(basedir="../../dense_point_cloud/ModelNet40",
-                                      split='test',
-                                      voxel_size=0.05,
-                                      sample_ratio=0.25)
+                                      voxel_size=voxel_size,
+                                      sample_ratio=1.0)
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                         batch_size=32,
                                         shuffle=True,
                                         num_workers=16,
-                                        pin_memory=True,
+                                        pin_memory=False,
                                         collate_fn=collate_pointcloud_fn)
     print("len(train_dataset):", len(train_dataset))
     print("len(train_loader)", len(train_loader))
     data_time = AverageMeter()
-    for i in range(10):
+    num_occupied_voxel = 0
+    num_data = 0
+    for i in range(1):
         start_epoch = time.time()
         start = time.time()
         for j, data_dict in enumerate(train_loader):
             coords = data_dict['coords']
+            print(coords.size())
             feats = data_dict['feats']
             labels = data_dict['labels']
-            sin = ME.SparseTensor(
-            feats, #coords[:, :3] * args.voxel_size,
-            coords.int(),
-            allow_duplicate_coords=True,  # for classification, it doesn't matter
-            )  #.to(device)
-            sin = sin.to('cuda')
-            labels = labels.to('cuda')
-            torch.cuda.synchronize()
-            data_time.update(time.time() - start)
+            num_occupied_voxel += coords.size(0)
+            num_data += 1
+            print(num_occupied_voxel/125000/num_data)
+            #torch.cuda.synchronize()
+            #data_time.update(time.time() - start)
             #print("Read data time:", i, j, data_time.val, data_time.avg)
+            print("number of occupied voxels in this batch:", coords.size(0), labels.size(0))
             start = time.time()
-        print("Epoch load time:", time.time() - start_epoch, data_time.avg)
+        #print("Epoch load time:", time.time() - start_epoch, data_time.avg)
+        print("Average ratio:", num_occupied_voxel, num_data, num_occupied_voxel/(num_data*voxels*voxels*voxels))

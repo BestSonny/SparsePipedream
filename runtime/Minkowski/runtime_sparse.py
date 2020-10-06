@@ -425,10 +425,10 @@ class StageRuntimeSparse:
                 coords = input['coords']
                 feats = input['feats']
                 labels = input['labels']
-                coords_manager = ME.CoordsManager(D=coords.size(1) - 1, num_threads=CPU_COUNT)
-                sin = ME.SparseTensor(feats=feats, coords=coords.int(), coords_manager=coords_manager)
+                coords_manager = ME.CoordinateManager(D=coords.size(1) - 1, num_threads=CPU_COUNT)
                 device = torch.cuda.current_device()
-                self.tensors[-1]["input0"] = sin.to(device)
+                sin = ME.SparseTensor(features=feats.to(device), coordinates=coords.int().to(device), coordinate_manager=coords_manager)
+                self.tensors[-1]["input0"] = sin
                 self.tensors[-1]["target"] = labels.cuda(non_blocking=True)
         else:
             # Receive all required tensors from upstream machines.

@@ -780,7 +780,7 @@ def _recv_sparse(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,
                                          coords_tensor_shape))
         coords = torch.zeros(coords_tensor_shape, dtype=dtype[0]).cuda()
         dist.broadcast(tensor=coords, src=src_rank, group=sub_process_group)
-        coords = coords.cpu()
+        #coords = coords.cpu()
         # Receive feats shape and tensor
         feats_tensor_shape = torch.zeros(len(feats_shape),
                                             dtype=torch.int)
@@ -799,10 +799,10 @@ def _recv_sparse(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,
                                          stride_tensor_shape))
         stride_tensor = torch.zeros(stride_tensor_shape, dtype=dtype[2]).cuda()
         dist.broadcast(tensor=stride_tensor, src=src_rank, group=sub_process_group)
-        stride_tensor = stride_tensor.cpu()
+        #stride_tensor = stride_tensor.cpu()
 
-        coords_manager = ME.CoordsManager(D=coords.size(1) - 1, num_threads=CPU_COUNT)
-        sparse_tensor = ME.SparseTensor(feats=feats, coords=coords, tensor_stride=stride_tensor,coords_manager=coords_manager)
+        coords_manager = ME.CoordinateManager(D=coords.size(1) - 1, num_threads=CPU_COUNT)
+        sparse_tensor = ME.SparseTensor(features=feats, coordinates=coords, tensor_stride=stride_tensor,coordinate_manager=coords_manager)
     else:
         # Receive coords shape and tensor.
         coords_tensor_shape = torch.zeros(len(coords_shape),
@@ -816,6 +816,7 @@ def _recv_sparse(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,
         dist.recv(tensor=coords,
                   src=src_rank,
                   tag=tag)
+        coords = coords.cuda()
 
         # Receive feats shape and tensor.
         feats_tensor_shape = torch.zeros(len(feats_shape),
@@ -840,11 +841,12 @@ def _recv_sparse(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,
         stride_tensor_shape = list(map(lambda x: int(x),
                                          stride_tensor_shape))
         stride_tensor = torch.zeros(stride_tensor_shape, dtype=dtype[2])
+        stride_tensor = stride_tensor.cuda()
         dist.recv(tensor=stride_tensor,
                   src=src_rank,
                   tag=tag)
-        coords_manager = ME.CoordsManager(D=coords.size(1) - 1, num_threads=CPU_COUNT)
-        sparse_tensor = ME.SparseTensor(feats=feats, coords=coords, tensor_stride=stride_tensor, coords_manager=coords_manager)
+        coords_manager = ME.CoordinateManager(D=coords.size(1) - 1, num_threads=CPU_COUNT)
+        sparse_tensor = ME.SparseTensor(features=feats, coordinates=coords, tensor_stride=stride_tensor, coordinate_manager=coords_manager)
 
     assert sparse_tensor.F.is_cuda
     return sparse_tensor
@@ -894,8 +896,8 @@ def _send_sparse(sparse_tensor, tensor_name, src_rank, dst_rank, tag, sub_proces
     
     if sub_process_group is not None:
         assert feats.is_cuda
-        assert not coords.is_cuda
-        assert not tensor_stride.is_cuda
+        #assert coords.is_cuda
+        #assert tensor_stride.is_cuda
 
         # Send coord shape.
         tensor_shape = torch.tensor(coords.shape, dtype=torch.int)
@@ -928,9 +930,11 @@ def _send_sparse(sparse_tensor, tensor_name, src_rank, dst_rank, tag, sub_proces
                        group=sub_process_group)
     else:
         assert feats.is_cuda
-        assert not coords.is_cuda
-        assert not tensor_stride.is_cuda
+        #assert not coords.is_cuda
+        #assert not tensor_stride.is_cuda
         feats = feats.cpu()
+        coords = coords.cpu()
+        tensor_stride = tensor_stride.cpu()
 
         # Send coords shape and tensor
         tensor_shape = torch.tensor(coords.shape, dtype=torch.int)

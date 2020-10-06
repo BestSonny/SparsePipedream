@@ -164,7 +164,8 @@ def main():
     input_feats_size = [2000, 1]
     coords = torch.randint(100, tuple(input_coords_size), dtype=torch.int)
     feats = torch.zeros(tuple(input_feats_size), dtype=torch.float32)
-    input = ME.SparseTensor(feats=feats, coords=coords)
+    device = torch.cuda.current_device()
+    input = ME.SparseTensor(features=feats.to(device), coordinates=coords.to(device))
     input_size = comm_sparse.createTensorSize(input)
     input_dtype = comm_sparse.createTensorDtype(input)
 
@@ -175,6 +176,7 @@ def main():
     fake_inputs = {"input0" : input}
     for (stage, inputs, outputs) in model[:-1]:  # Skip last layer (loss).
         input_tensors = []
+        stage = stage.cuda(device)
         for input in inputs:
             input_tensors.append(fake_inputs[input])
         with torch.no_grad():
