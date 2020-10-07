@@ -841,10 +841,10 @@ def _recv_sparse(tensor_name, src_rank, tensor_shape=None, dtype=torch.float32,
         stride_tensor_shape = list(map(lambda x: int(x),
                                          stride_tensor_shape))
         stride_tensor = torch.zeros(stride_tensor_shape, dtype=dtype[2])
-        stride_tensor = stride_tensor.cuda()
         dist.recv(tensor=stride_tensor,
                   src=src_rank,
                   tag=tag)
+        stride_tensor = stride_tensor.cuda()
         coords_manager = ME.CoordinateManager(D=coords.size(1) - 1, num_threads=CPU_COUNT)
         sparse_tensor = ME.SparseTensor(features=feats, coordinates=coords, tensor_stride=stride_tensor, coordinate_manager=coords_manager)
 
