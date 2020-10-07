@@ -22,7 +22,15 @@ image classification models that uses our `StageRuntime` and integrates
 with PyTorch. The runtime allows a model's layers to be split over
 multiple machines, and supports pipelining.
 
-### Using `driver.py`
+### Using `driver.py` or `driver_for_dense.py`
+
+`driver.py` can be used to run sparse models on 1 server or across servers
+with the number of GPUs on each server varying
+(e.g., Server0 has 2 GPU, and Server1 has 4 GPUs).
+
+`driver_for_dense.py` is used to run `dense_point_cloud`, `image_classification`,
+or `translation` that run on 1 server or across servers with the assumption that
+each server has the same number of GPUs.
 
 `driver.py` configures containers, launches `main_with_runtime.py` within
 the containers, and logs experimental settings and output.

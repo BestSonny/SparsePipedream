@@ -19,6 +19,7 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from dataset.modelNetDataLoader import ModelNetDataLoader
+from dataset.dataset import ModelNetMinkowski
 
 torch.manual_seed(0)
 import numpy as np
@@ -66,10 +67,11 @@ parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
                     help='url used to set up distributed training')
 parser.add_argument('--dist-backend', default='gloo', type=str,
                     help='distributed backend')
-parser.add_argument('--voxel_size', type=float, default=0.05)
+parser.add_argument('--voxel_size', type=float, default=0.02)
 parser.add_argument('--max_iter', type=int, default=120000)
 parser.add_argument('--val_freq', type=int, default=1000)
-parser.add_argument('--dataset', default='modelnet40', type=str,
+parser.add_argument('--sample_ratio', type=float, default=1.0)
+parser.add_argument('--dataset', default='kaolinmodelnetvoxeldataset', type=str,
                     help='dataset name, modelnet40 or shapenet')
 
 best_prec1 = 0
@@ -117,9 +119,9 @@ def main():
     # create model
     module = importlib.import_module(args.module)
     args.arch = module.arch()
-    model = module.full_model()
-    #model = vgg.vgg16_bn(in_channels=1, out_channels=40)
-    print("model:", model)
+    #model = module.full_model()
+    model = vgg.vgg16_bn(in_channels=1, out_channels=40)
+    #print("model:", model)
 
     model = model.cuda()
     #if not args.distributed:
@@ -150,7 +152,7 @@ def main():
                                               classification=True,
                                               split='val',
                                               voxel_size=args.voxel_size)
-    else:
+    elif args.dataset == 'modelnetvoxeldataset':
         train_dataset = ModelNetDataLoader(root=args.data_dir,
                                            shared_dict=shared_dict,
                                            split='train',
@@ -161,6 +163,16 @@ def main():
                                            split='test',
                                            voxel_size=args.voxel_size,
                                            data_augmentation=False)
+    elif args.dataset == 'kaolinmodelnetvoxeldataset':
+        train_dataset = ModelNetMinkowski(basedir=args.data_dir,
+                                          split='train',
+                                          voxel_size=args.voxel_size,
+                                          sample_ratio=args.sample_ratio)
+        val_dataset = ModelNetMinkowski(basedir=args.data_dir,
+                                        split='test',
+                                        voxel_size=args.voxel_size,
+                                        sample_ratio=args.sample_ratio)
+
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
         val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
@@ -171,14 +183,13 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                              batch_size=args.batch_size,
                                              shuffle=(train_sampler is None),
-                                             num_workers=args.workers,
+                                             num_workers=int(args.workers),
                                              pin_memory=True, sampler=train_sampler,
                                              collate_fn=dataset.collate_pointcloud_fn)
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=args.eval_batch_size, 
                                              shuffle=False,
-                                             #No worker to save val data in memory
-                                             #num_workers=args.workers, 
+                                             num_workers=int(args.workers), 
                                              pin_memory=True,
                                              sampler=val_sampler,
                                              collate_fn=dataset.collate_pointcloud_fn)
@@ -222,18 +233,22 @@ def train(train_loader, model, criterion, optimizer, epoch):
     end = time.time()
     epoch_start_time = time.time()
 
+    #loader_iter = iter(train_loader)
+    #loader_len = len(train_loader)
     for i, data_dict in enumerate(train_loader):
+    #for i in range(loader_len):
         if args.num_minibatches is not None and i >= args.num_minibatches:
             break
+        #data_dict = next(loader_iter)
         coords = data_dict['coords']
         feats = data_dict['feats']
         labels = data_dict['labels']
         sin = ME.SparseTensor(
-            feats, #coords[:, :3] * args.voxel_size,
-            coords.int(),
-            allow_duplicate_coords=True,  # for classification, it doesn't matter
+            feats.to('cuda'), #coords[:, :3] * args.voxel_size,
+            coords.int().to('cuda')
+            #allow_duplicate_coords=True,  # for classification, it doesn't matter
         )  #.to(device)
-        sin = sin.to('cuda')
+        #sin = sin.to('cuda')
         labels = labels.to('cuda')
         torch.cuda.synchronize()
         data_time.update(time.time() - end)
@@ -297,11 +312,11 @@ def validate(val_loader, model, criterion, epoch):
             feats = data_dict['feats'] 
             labels = data_dict['labels']
             sin = ME.SparseTensor(
-                feats, #coords[:, :3] * args.voxel_size,
-                coords.int(),
-                allow_duplicate_coords=True,  # for classification, it doesn't matter
+                feats.to('cuda'), #coords[:, :3] * args.voxel_size,
+                coords.int().to('cuda')
+                #allow_duplicate_coords=True,  # for classification, it doesn't matter
             )  #.to(device)
-            sin = sin.to('cuda')
+            #sin = sin.to('cuda')
             labels = labels.to('cuda')
             # compute output
             sout = model(sin)

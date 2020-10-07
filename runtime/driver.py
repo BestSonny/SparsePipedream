@@ -221,7 +221,7 @@ if __name__ == "__main__":
         })
     runtime_cmd_preamble_list.append('cd %(working_dir)s/%(main_with_runtime_folder)s; '
                                      #'%(python_path)s' % {
-                                     'CUDA_VISIBLE_DEVICES="1,2,3,0" %(python_path)s' % {
+                                     'CUDA_VISIBLE_DEVICES="0,1,2,3" %(python_path)s' % {
                                          "working_dir": os.getcwd(),
                                          "main_with_runtime_folder":
                                             main_with_runtime_folder,
@@ -358,6 +358,7 @@ if __name__ == "__main__":
                 launch_cmd = 'ssh -n %s -o StrictHostKeyChecking=no \"%s\"' % (node_ip,
                                                                                launch_cmd)
             command_history_file.write(launch_cmd + "\n")
+            print(launch_cmd)
 
             if not args.quiet:
                 subprocess.check_output(launch_cmd, shell=True)

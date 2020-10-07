@@ -65,11 +65,9 @@ def create_graph(model, train_loader, summary, directory):
         feats = data_dict['feats']
         labels = data_dict['labels']
         sin = ME.SparseTensor(
-            feats,
-            coords.int(),
-            allow_duplicate_coords=True,  # for classification, it doesn't matter
-        )  #.to(device)
-        sin = sin.to("cuda")
+            feats.to("cuda"),
+            coords.int().to("cuda")
+        ) 
         output = model(sin)
         if i >= 0:
             break
@@ -254,12 +252,11 @@ def main():
         feats = data_dict['feats']
         labels = data_dict['labels']
         sin = ME.SparseTensor(
-                feats,
-                coords.int(),
-                allow_duplicate_coords=True,  # for classification, it doesn't matter
+                feats.to("cuda"),
+                coords.int().to("cuda"),
             )
         
-        model_input = sin.to("cuda")
+        model_input = sin
         if i >= 0:
             break
     summary = torchsummary.summary(model=model,
@@ -320,11 +317,9 @@ def profile_train(train_loader, model, criterion, optimizer):
         feats = data_dict['feats']
         labels = data_dict['labels']
         sin = ME.SparseTensor(
-            feats, #coords[:, :3] * args.voxel_size,
-            coords.int(),
-            allow_duplicate_coords=True,  # for classification, it doesn't matter
-            )  #.to(device)
-        sin = sin.to('cuda')
+            feats.to('cuda'),
+            coords.int().to('cuda')
+            ) 
         labels = labels.to('cuda')
         torch.cuda.synchronize()
         #print(" batch :", i, "time:", time.time() - mm)
@@ -336,11 +331,9 @@ def profile_train(train_loader, model, criterion, optimizer):
         feats = data_dict['feats']
         labels = data_dict['labels']
         sin = ME.SparseTensor(
-            feats,
-            coords.int(),
-            allow_duplicate_coords=True,  # for classification, it doesn't matter
-        )  #.to(device)
-        sin = sin.to("cuda")
+            feats.to('cuda'),
+            coords.int().to('cuda')
+        ) 
         labels = labels.to("cuda")
         sout = model(sin)
         loss = criterion(sout.F, labels)
@@ -349,6 +342,7 @@ def profile_train(train_loader, model, criterion, optimizer):
         optimizer.step()
         if i >= NUM_STEPS_TO_WARMUP:
             break
+    print("Finished warmup")
     
     start_time = time.time()
     for i, data_dict in enumerate(train_loader):
@@ -361,11 +355,9 @@ def profile_train(train_loader, model, criterion, optimizer):
         with torchprofiler.Profiling(model, module_whitelist=['MinkowskiConvolution', 'MinkowskiBatchNorm', 'MinkowskiReLU', 'MinkowskiLinear', 'Dropout']) as p:
             aa_time = time.time()
             sin = ME.SparseTensor(
-                feats,
-                coords.int(),
-                allow_duplicate_coords=True,  # for classification, it doesn't matter
-            )  #.to(device)
-            sin = sin.to("cuda")
+                feats.to("cuda"),
+                coords.int().to("cuda")
+            )
             labels = labels.to("cuda")
             data_transfer_time = time.time() - aa_time
             data_time = data_time + data_transfer_time

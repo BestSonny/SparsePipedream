@@ -28,6 +28,9 @@ ENV FORCE_CUDA=1
 
 RUN pip install -r requirements.txt
 
+RUN apt-get install -y g++-7
+ENV CXX=g++-7
+
 RUN git clone https://github.com/BestSonny/MinkowskiEngineM.git && \
     cd MinkowskiEngineM && \
     TORCH_CUDA_ARCH_LIST="5.2 6.0 6.1 7.0 7.5+PTX" \

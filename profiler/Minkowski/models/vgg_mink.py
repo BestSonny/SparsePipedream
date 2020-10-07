@@ -29,8 +29,8 @@ class Dropout(nn.Module):
         output = self.dropout(input.F)
         return ME.SparseTensor(
             output,
-            coords_key=input.coords_key,
-            coords_manager=input.coords_man)
+            coordinate_map_key=input.coordinate_map_key,
+            coordinate_manager=input.coordinate_manager)
     def __repr__(self):
         s = '(p={}, inplace={})'.format(
             self.dropout.p, self.dropout.inplace)
@@ -79,7 +79,7 @@ def make_layers(cfg, batch_norm=False, in_channels=3, D=3):
         if v == 'M':
             layers += [ME.MinkowskiMaxPooling(kernel_size=2, stride=2, dimension=D)]
         else:
-            conv = ME.MinkowskiConvolution(in_channels, v, kernel_size=3, stride=1, dilation=1, has_bias=False, dimension=D)
+            conv = ME.MinkowskiConvolution(in_channels, v, kernel_size=3, stride=1, dilation=1, bias=False, dimension=D)
             if batch_norm:
                 layers += [conv, ME.MinkowskiBatchNorm(v), ME.MinkowskiReLU(inplace=True)]
             else:

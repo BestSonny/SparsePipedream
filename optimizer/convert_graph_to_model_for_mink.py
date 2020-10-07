@@ -124,6 +124,7 @@ def convert_subgraph_to_module(graph, full_graph, num_subgraphs, module_name, in
         # changed by keke 
         if (node.node_desc.startswith('Minkowski')):
             import_statements.append("import MinkowskiEngine as ME")
+            import_statements.append("from MinkowskiEngineBackend._C import PoolingMode")
             layer_declaration = "ME.%s" % (
                 node.node_desc.replace("inplace", "inplace=True"))
             #layer_declaration = layer_declaration.replace("in=", "in_channels=")
